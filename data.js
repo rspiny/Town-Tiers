@@ -1,4 +1,6 @@
 // Supabase configuration
+console.log(window.supabase);
+console.log(typeof window.supabase?.createClient);
 const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
 
