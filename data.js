@@ -82,12 +82,11 @@ async function addPlayer(playerData) {
             },
             body: JSON.stringify({
                 username: playerData.username,
-                Avatar: playerData.avatar,
+                avatar: playerData.avatar,
                 region: playerData.region,
                 faction: playerData.faction || 'N/A',
                 longRangeTier: playerData.longRangeTier,
-                cqcTier: playerData.cqcTier,
-                avatar: playerData.avatar
+                cqcTier: playerData.cqcTier
             })
         });
         
