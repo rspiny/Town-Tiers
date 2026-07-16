@@ -5,7 +5,7 @@ let isAdminLoggedIn = false;
 
 // Admin credentials (stored locally - you can add more)
 const ADMIN_CREDENTIALS = [
-    { email: 'redlineproductionss@gmail.com', password: '23032011tobias' }
+    { email: 'redlineproductionss@gmail.com', password: 'r51684420' }
     // Add more admins like: { email: 'user@example.com', password: 'pass123' }
 ];
 
