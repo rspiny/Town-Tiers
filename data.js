@@ -2,6 +2,9 @@
 const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
 
+// Initialize Supabase client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // Tier point values
 const TIER_POINTS = {
     'LT5': 10,
