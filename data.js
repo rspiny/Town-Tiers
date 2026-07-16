@@ -30,7 +30,17 @@ async function initializePlayers() {
         });
         
         if (response.ok) {
-            players = await response.json();
+            const data = await response.json();
+            // Map Supabase columns to our format
+            players = data.map(p => ({
+                id: p.id,
+                username: p.username,
+                avatar: p.avatar,
+                region: p.region,
+                faction: p.faction,
+                longRangeTier: p.LongRangeTier,
+                cqcTier: p.CqcTier
+            }));
             console.log('Players loaded from Supabase:', players);
         } else {
             console.error('Failed to load players:', response.statusText);
@@ -78,8 +88,8 @@ async function addPlayer(playerData) {
             avatar: playerData.avatar,
             region: playerData.region,
             faction: playerData.faction || 'N/A',
-            longRangeTier: playerData.longRangeTier,
-            cqcTier: playerData.cqcTier
+            LongRangeTier: playerData.longRangeTier,
+            CqcTier: playerData.cqcTier
         };
 
         console.log('Sending player data:', payload);
@@ -98,13 +108,18 @@ async function addPlayer(playerData) {
         console.log('Response:', responseData);
 
         if (response.ok) {
-            if (Array.isArray(responseData)) {
-                players.push(responseData[0]);
-                return responseData[0];
-            } else {
-                players.push(responseData);
-                return responseData;
-            }
+            const newPlayer = Array.isArray(responseData) ? responseData[0] : responseData;
+            const mappedPlayer = {
+                id: newPlayer.id,
+                username: newPlayer.username,
+                avatar: newPlayer.avatar,
+                region: newPlayer.region,
+                faction: newPlayer.faction,
+                longRangeTier: newPlayer.LongRangeTier,
+                cqcTier: newPlayer.CqcTier
+            };
+            players.push(mappedPlayer);
+            return mappedPlayer;
         } else {
             console.error('Failed to add player:', responseData);
             return null;
@@ -118,13 +133,18 @@ async function addPlayer(playerData) {
 // Update a player in Supabase
 async function updatePlayer(playerId, playerData) {
     try {
+        const payload = {
+            LongRangeTier: playerData.longRangeTier,
+            CqcTier: playerData.cqcTier
+        };
+
         const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
             method: 'PATCH',
             headers: {
                 'apikey': SUPABASE_KEY,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(playerData)
+            body: JSON.stringify(payload)
         });
         
         if (response.ok) {
