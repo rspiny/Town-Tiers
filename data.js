@@ -22,7 +22,7 @@ let players = [];
 // Initialize app - load players from Supabase
 async function initializePlayers() {
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?select=*`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
             headers: {
                 'apikey': SUPABASE_KEY,
                 'Content-Type': 'application/json',
@@ -73,6 +73,17 @@ function getPlayersSortedBy(category) {
 // Add a new player to Supabase
 async function addPlayer(playerData) {
     try {
+        const payload = {
+            username: playerData.username,
+            avatar: playerData.avatar,
+            region: playerData.region,
+            faction: playerData.faction || 'N/A',
+            longRangeTier: playerData.longRangeTier,
+            cqcTier: playerData.cqcTier
+        };
+
+        console.log('Sending player data:', payload);
+
         const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
             method: 'POST',
             headers: {
@@ -80,28 +91,22 @@ async function addPlayer(playerData) {
                 'Content-Type': 'application/json',
                 'Prefer': 'return=representation'
             },
-            body: JSON.stringify({
-                username: playerData.username,
-                avatar: playerData.avatar,
-                region: playerData.region,
-                faction: playerData.faction || 'N/A',
-                longRangeTier: playerData.longRangeTier,
-                cqcTier: playerData.cqcTier
-            })
+            body: JSON.stringify(payload)
         });
         
+        const responseData = await response.json();
+        console.log('Response:', responseData);
+
         if (response.ok) {
-            const newPlayer = await response.json();
-            if (Array.isArray(newPlayer)) {
-                players.push(newPlayer[0]);
-                return newPlayer[0];
+            if (Array.isArray(responseData)) {
+                players.push(responseData[0]);
+                return responseData[0];
             } else {
-                players.push(newPlayer);
-                return newPlayer;
+                players.push(responseData);
+                return responseData;
             }
         } else {
-            const error = await response.json();
-            console.error('Failed to add player:', error);
+            console.error('Failed to add player:', responseData);
             return null;
         }
     } catch (error) {
