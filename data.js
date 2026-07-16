@@ -1,6 +1,4 @@
 // Supabase configuration
-console.log(window.supabase);
-console.log(typeof window.supabase?.createClient);
 const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
 
@@ -205,27 +203,3 @@ function searchPlayers(query) {
 
 // Initialize players when page loads
 initializePlayers();
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-    });
-
-    if (error) {
-        alert("Wrong email or password.");
-        return false;
-    }
-
-    const { data: admin } = await supabase
-        .from("admins")
-        .select("*")
-        .eq("email", email)
-        .single();
-
-    if (!admin) {
-        await supabase.auth.signOut();
-        alert("Access denied.");
-        return false;
-    }
-
-    return true;
-}
