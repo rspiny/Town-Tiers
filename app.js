@@ -4,19 +4,27 @@ let discordLink = 'https://discord.gg';
 let isAdminLoggedIn = false;
 let editingPlayerId = null;
 
-// Admin credentials (stored locally - you can add more)
-const ADMIN_CREDENTIALS = [
-    { email: 'redlineproductionss@gmail.com', password: 'r51684420' }
-    // Add more admins like: { email: 'user@example.com', password: 'pass123' }
-];
-
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     await initializePlayers();
     loadDiscordLink();
     renderLeaderboards();
     setupEventListeners();
+    checkAdminSession();
 });
+
+// Check if user is already logged in
+async function checkAdminSession() {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            isAdminLoggedIn = true;
+            console.log('User already logged in:', session.user.email);
+        }
+    } catch (error) {
+        console.error('Error checking session:', error);
+    }
+}
 
 // Event listeners
 function setupEventListeners() {
@@ -109,29 +117,40 @@ function setupEventListeners() {
     });
 }
 
-// Admin login handler
-function handleAdminLogin() {
+// Admin login handler - uses Supabase Authentication
+async function handleAdminLogin() {
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value.trim();
 
-    console.log('Login attempt:', email);
-    console.log('Credentials available:', ADMIN_CREDENTIALS);
+    if (!email || !password) {
+        alert('Please enter email and password!');
+        return;
+    }
 
-    // Check credentials
-    const isValid = ADMIN_CREDENTIALS.some(admin => 
-        admin.email === email && admin.password === password
-    );
+    try {
+        // Send login request to Supabase - password is sent securely
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
 
-    if (isValid) {
-        console.log('Login successful!');
-        isAdminLoggedIn = true;
-        localStorage.setItem('adminLoggedIn', 'true');
-        document.getElementById('adminLoginModal').classList.remove('show');
-        document.getElementById('adminLoginForm').reset();
-        openAdminPanel();
-    } else {
-        console.log('Login failed - invalid credentials');
-        alert('Invalid email or password!');
+        if (error) {
+            console.error('Login error:', error.message);
+            alert('Invalid email or password!');
+            document.getElementById('adminLoginForm').reset();
+            return;
+        }
+
+        if (data.session) {
+            console.log('Login successful! User:', data.user.email);
+            isAdminLoggedIn = true;
+            document.getElementById('adminLoginModal').classList.remove('show');
+            document.getElementById('adminLoginForm').reset();
+            openAdminPanel();
+        }
+    } catch (error) {
+        console.error('Unexpected error:', error);
+        alert('An error occurred. Please try again.');
         document.getElementById('adminLoginForm').reset();
     }
 }
@@ -432,9 +451,7 @@ function loadDiscordLink() {
     if (saved) discordLink = saved;
 }
 
-// Check if admin is logged in on page load
+// Check if admin is already logged in when page loads
 window.addEventListener('load', () => {
-    if (localStorage.getItem('adminLoggedIn') === 'true') {
-        isAdminLoggedIn = true;
-    }
+    checkAdminSession();
 });
