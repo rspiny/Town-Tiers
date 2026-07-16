@@ -201,20 +201,7 @@ function openPlayerModal(playerId) {
 }
 
 // Admin panel
-async function openAdminPanel() {
-
-    const email = prompt("Admin Email:");
-
-    if (!email) return;
-
-    const password = prompt("Password:");
-
-    if (!password) return;
-
-    const success = await loginAdmin(email, password);
-
-    if (!success) return;
-
+function openAdminPanel() {
     const count = players.length;
     document.querySelector('.admin-modal h2').innerHTML = `Admin Panel (${count} players)`;
     document.getElementById('discordLink').value = discordLink;
