@@ -3,7 +3,8 @@ let currentTab = 'overall';
 let discordLink = 'https://discord.gg';
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializePlayers();
     loadDiscordLink();
     renderLeaderboards();
     setupEventListeners();
@@ -239,7 +240,7 @@ function openAddPlayerModal() {
     document.getElementById('addPlayerModal').classList.add('show');
 }
 
-function handleAddPlayer() {
+async function handleAddPlayer() {
     const username = document.getElementById('username').value.trim();
     const avatarUrl = document.getElementById('avatarUrl').value.trim();
     const region = document.getElementById('region').value;
@@ -253,7 +254,7 @@ function handleAddPlayer() {
         return;
     }
 
-    addPlayer({
+    const result = await addPlayer({
         username,
         avatar: avatarUrl || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
         region,
@@ -263,11 +264,15 @@ function handleAddPlayer() {
         notes
     });
 
-    document.getElementById('addPlayerForm').reset();
-    document.getElementById('addPlayerModal').classList.remove('show');
-    renderLeaderboards();
-    openAdminPanel();
-    alert('Player added successfully!');
+    if (result) {
+        document.getElementById('addPlayerForm').reset();
+        document.getElementById('addPlayerModal').classList.remove('show');
+        renderLeaderboards();
+        openAdminPanel();
+        alert('Player added successfully!');
+    } else {
+        alert('Error adding player. Please try again.');
+    }
 }
 
 // Edit player
@@ -276,11 +281,15 @@ function editPlayer(playerId) {
 }
 
 // Delete player
-function deletePlayerConfirm(playerId) {
+async function deletePlayerConfirm(playerId) {
     if (confirm('Are you sure you want to delete this player?')) {
-        deletePlayer(playerId);
-        renderLeaderboards();
-        renderPlayersList();
+        const result = await deletePlayer(playerId);
+        if (result) {
+            renderLeaderboards();
+            renderPlayersList();
+        } else {
+            alert('Error deleting player. Please try again.');
+        }
     }
 }
 
