@@ -2,6 +2,7 @@
 let currentTab = 'overall';
 let discordLink = 'https://discord.gg';
 let isAdminLoggedIn = false;
+let editingPlayerId = null;
 
 // Admin credentials (stored locally - you can add more)
 const ADMIN_CREDENTIALS = [
@@ -45,13 +46,14 @@ function setupEventListeners() {
     });
 
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
+        editingPlayerId = null;
         openAddPlayerModal();
     });
 
-    // Add player form
+    // Add/Edit player form
     document.getElementById('addPlayerForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        handleAddPlayer();
+        handleAddOrEditPlayer();
     });
 
     // Admin login form
@@ -85,6 +87,7 @@ function setupEventListeners() {
     document.getElementById('cancelAddBtn').addEventListener('click', () => {
         document.getElementById('addPlayerModal').classList.remove('show');
         document.getElementById('addPlayerForm').reset();
+        editingPlayerId = null;
     });
 
     // Modal click outside to close
@@ -94,6 +97,7 @@ function setupEventListeners() {
             if (document.getElementById('addPlayerForm')) {
                 document.getElementById('addPlayerForm').reset();
             }
+            editingPlayerId = null;
         }
     });
 }
@@ -183,7 +187,13 @@ function renderLeaderboard(category) {
                     <div class="player-name">${player.username}</div>
                     <div class="player-meta">${player.region}${player.faction ? ' • ' + player.faction : ''}</div>
                 </div>
-                <div class="player-row-points">${points}</div>
+                <div class="player-stats">
+                    <div class="player-row-points">${points}</div>
+                    <div class="player-tiers">
+                        <span class="tier-small">${player.longRangeTier}</span>
+                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    </div>
+                </div>
                 <div class="player-row-chevron">›</div>
             </div>
         `;
@@ -220,7 +230,13 @@ function handleSearch(query) {
                     <div class="player-name">${player.username}</div>
                     <div class="player-meta">${player.region}${player.faction ? ' • ' + player.faction : ''}</div>
                 </div>
-                <div class="player-row-points">${points}</div>
+                <div class="player-stats">
+                    <div class="player-row-points">${points}</div>
+                    <div class="player-tiers">
+                        <span class="tier-small">${player.longRangeTier}</span>
+                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    </div>
+                </div>
                 <div class="player-row-chevron">›</div>
             </div>
         `;
@@ -273,8 +289,8 @@ function renderPlayersList() {
                 </div>
             </div>
             <div class="player-item-actions">
-                <button class="player-item-btn edit" onclick="editPlayer(${player.id})" title="Edit">✏️</button>
-                <button class="player-item-btn delete" onclick="deletePlayerConfirm(${player.id})" title="Delete">🗑️</button>
+                <button class="player-item-btn edit" onclick="startEditPlayer(event, ${player.id})" title="Edit">✏️</button>
+                <button class="player-item-btn delete" onclick="deletePlayerConfirm(event, ${player.id})" title="Delete">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -283,10 +299,33 @@ function renderPlayersList() {
 // Add player
 function openAddPlayerModal() {
     document.getElementById('addPlayerForm').reset();
+    document.querySelector('#addPlayerModal h2').textContent = 'Add New Player';
     document.getElementById('addPlayerModal').classList.add('show');
 }
 
-async function handleAddPlayer() {
+// Start edit player
+function startEditPlayer(event, playerId) {
+    event.stopPropagation();
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+
+    editingPlayerId = playerId;
+    
+    // Fill form with player data
+    document.getElementById('username').value = player.username;
+    document.getElementById('avatarUrl').value = player.avatar;
+    document.getElementById('region').value = player.region;
+    document.getElementById('faction').value = player.faction === 'N/A' ? '' : player.faction;
+    document.getElementById('longRangeTier').value = player.longRangeTier;
+    document.getElementById('cqcTier').value = player.cqcTier;
+    document.getElementById('notes').value = player.notes || '';
+    
+    document.querySelector('#addPlayerModal h2').textContent = `Edit ${player.username}`;
+    document.getElementById('addPlayerModal').classList.add('show');
+}
+
+// Handle add or edit player
+async function handleAddOrEditPlayer() {
     const username = document.getElementById('username').value.trim();
     const avatarUrl = document.getElementById('avatarUrl').value.trim();
     const region = document.getElementById('region').value;
@@ -300,7 +339,7 @@ async function handleAddPlayer() {
         return;
     }
 
-    const result = await addPlayer({
+    const playerData = {
         username,
         avatar: avatarUrl || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
         region,
@@ -308,26 +347,39 @@ async function handleAddPlayer() {
         longRangeTier,
         cqcTier,
         notes
-    });
+    };
+
+    let result;
+    if (editingPlayerId) {
+        // Edit existing player
+        result = await updatePlayer(editingPlayerId, playerData);
+        if (result) {
+            alert('Player updated successfully!');
+        } else {
+            alert('Error updating player. Please try again.');
+        }
+    } else {
+        // Add new player
+        result = await addPlayer(playerData);
+        if (result) {
+            alert('Player added successfully!');
+        } else {
+            alert('Error adding player. Please try again.');
+        }
+    }
 
     if (result) {
         document.getElementById('addPlayerForm').reset();
         document.getElementById('addPlayerModal').classList.remove('show');
         renderLeaderboards();
-        openAdminPanel();
-        alert('Player added successfully!');
-    } else {
-        alert('Error adding player. Please try again.');
+        renderPlayersList();
+        editingPlayerId = null;
     }
 }
 
-// Edit player
-function editPlayer(playerId) {
-    alert('Edit functionality coming soon!');
-}
-
 // Delete player
-async function deletePlayerConfirm(playerId) {
+async function deletePlayerConfirm(event, playerId) {
+    event.stopPropagation();
     if (confirm('Are you sure you want to delete this player?')) {
         const result = await deletePlayer(playerId);
         if (result) {
