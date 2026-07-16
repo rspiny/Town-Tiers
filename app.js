@@ -1,6 +1,13 @@
 // State
 let currentTab = 'overall';
 let discordLink = 'https://discord.gg';
+let isAdminLoggedIn = false;
+
+// Admin credentials (stored locally - you can add more)
+const ADMIN_CREDENTIALS = [
+    { email: 'admin@example.com', password: 'admin123' }
+    // Add more admins like: { email: 'user@example.com', password: 'pass123' }
+];
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
@@ -30,7 +37,11 @@ function setupEventListeners() {
     });
 
     document.getElementById('adminBtn').addEventListener('click', () => {
-        openAdminPanel();
+        if (isAdminLoggedIn) {
+            openAdminPanel();
+        } else {
+            showAdminLoginModal();
+        }
     });
 
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
@@ -42,6 +53,14 @@ function setupEventListeners() {
         e.preventDefault();
         handleAddPlayer();
     });
+
+    // Admin login form
+    if (document.getElementById('adminLoginForm')) {
+        document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleAdminLogin();
+        });
+    }
 
     // Discord link save
     document.getElementById('saveLinkBtn').addEventListener('click', () => {
@@ -77,6 +96,33 @@ function setupEventListeners() {
             }
         }
     });
+}
+
+// Admin login handler
+function handleAdminLogin() {
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value.trim();
+
+    // Check credentials
+    const isValid = ADMIN_CREDENTIALS.some(admin => 
+        admin.email === email && admin.password === password
+    );
+
+    if (isValid) {
+        isAdminLoggedIn = true;
+        localStorage.setItem('adminLoggedIn', 'true');
+        document.getElementById('adminLoginModal').classList.remove('show');
+        document.getElementById('adminLoginForm').reset();
+        openAdminPanel();
+    } else {
+        alert('Invalid email or password!');
+        document.getElementById('adminLoginForm').reset();
+    }
+}
+
+// Show admin login modal
+function showAdminLoginModal() {
+    document.getElementById('adminLoginModal').classList.add('show');
 }
 
 // Tab switching
@@ -298,3 +344,10 @@ function loadDiscordLink() {
     const saved = localStorage.getItem('discordLink');
     if (saved) discordLink = saved;
 }
+
+// Check if admin is logged in on page load
+window.addEventListener('load', () => {
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+        isAdminLoggedIn = true;
+    }
+});
