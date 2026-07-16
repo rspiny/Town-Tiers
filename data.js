@@ -205,7 +205,6 @@ function searchPlayers(query) {
 
 // Initialize players when page loads
 initializePlayers();
-async function loginAdmin(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
