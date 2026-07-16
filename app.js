@@ -74,12 +74,19 @@ function setupEventListeners() {
         }
     });
 
-    // Close buttons
+    // Close buttons - specific modal handling
     document.querySelectorAll('.close').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.target.closest('.modal').classList.remove('show');
-            if (document.getElementById('addPlayerForm')) {
+            const modal = e.target.closest('.modal');
+            modal.classList.remove('show');
+            
+            // Reset form if it exists
+            if (modal.id === 'addPlayerModal' && document.getElementById('addPlayerForm')) {
                 document.getElementById('addPlayerForm').reset();
+                editingPlayerId = null;
+            }
+            if (modal.id === 'adminLoginModal' && document.getElementById('adminLoginForm')) {
+                document.getElementById('adminLoginForm').reset();
             }
         });
     });
@@ -96,8 +103,8 @@ function setupEventListeners() {
             e.target.classList.remove('show');
             if (document.getElementById('addPlayerForm')) {
                 document.getElementById('addPlayerForm').reset();
+                editingPlayerId = null;
             }
-            editingPlayerId = null;
         }
     });
 }
@@ -107,18 +114,23 @@ function handleAdminLogin() {
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value.trim();
 
+    console.log('Login attempt:', email);
+    console.log('Credentials available:', ADMIN_CREDENTIALS);
+
     // Check credentials
     const isValid = ADMIN_CREDENTIALS.some(admin => 
         admin.email === email && admin.password === password
     );
 
     if (isValid) {
+        console.log('Login successful!');
         isAdminLoggedIn = true;
         localStorage.setItem('adminLoggedIn', 'true');
         document.getElementById('adminLoginModal').classList.remove('show');
         document.getElementById('adminLoginForm').reset();
         openAdminPanel();
     } else {
+        console.log('Login failed - invalid credentials');
         alert('Invalid email or password!');
         document.getElementById('adminLoginForm').reset();
     }
@@ -126,6 +138,7 @@ function handleAdminLogin() {
 
 // Show admin login modal
 function showAdminLoginModal() {
+    console.log('Opening login modal');
     document.getElementById('adminLoginModal').classList.add('show');
 }
 
