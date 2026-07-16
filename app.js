@@ -198,7 +198,7 @@ function renderLeaderboard(category) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.region}${player.faction ? ' • ' + player.faction : ''}</div>
+                    <div class="player-meta">${player.faction}<span class="player-region">${player.region}</span></div>
                 </div>
                 <div class="player-stats">
                     <div class="player-row-points">${points}</div>
@@ -241,7 +241,7 @@ function handleSearch(query) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.region}${player.faction ? ' • ' + player.faction : ''}</div>
+                    <div class="player-meta">${player.faction}<span class="player-region">${player.region}</span></div>
                 </div>
                 <div class="player-stats">
                     <div class="player-row-points">${points}</div>
