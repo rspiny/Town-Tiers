@@ -1,3 +1,7 @@
+// Supabase configuration
+const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
+
 // Tier point values
 const TIER_POINTS = {
     'LT5': 10,
@@ -12,19 +16,31 @@ const TIER_POINTS = {
     'HT1': 100
 };
 
-// Sample player data (you can modify this)
-let players = [
-    {
-        id: 1,
-        username: 'Kabrateam',
-        avatar: 'https://tr.rbxcdn.com/d40106ab2f28e25f3c6b4f7e5e8c9f1a/150/150/Avatar.png',
-        region: 'Europe',
-        faction: 'N/A',
-        longRangeTier: 'HT3',
-        cqcTier: 'N/A',
-        notes: ''
+// Players array (will be loaded from Supabase)
+let players = [];
+
+// Initialize app - load players from Supabase
+async function initializePlayers() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?select=*`, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            players = await response.json();
+            console.log('Players loaded from Supabase:', players);
+        } else {
+            console.error('Failed to load players:', response.statusText);
+            players = [];
+        }
+    } catch (error) {
+        console.error('Error loading players:', error);
+        players = [];
     }
-];
+}
 
 // Calculate points based on tier
 function getPointsForTier(tier) {
@@ -54,34 +70,102 @@ function getPlayersSortedBy(category) {
     return sorted.slice(0, 100); // Top 100
 }
 
-// Add a new player
-function addPlayer(playerData) {
-    const newPlayer = {
-        id: players.length + 1,
-        ...playerData
-    };
-    players.push(newPlayer);
-    return newPlayer;
+// Add a new player to Supabase
+async function addPlayer(playerData) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+                username: playerData.username,
+                Avatar: playerData.avatar,
+                region: playerData.region,
+                faction: playerData.faction || 'N/A',
+                longRangeTier: playerData.longRangeTier,
+                cqcTier: playerData.cqcTier,
+                avatar: playerData.avatar
+            })
+        });
+        
+        if (response.ok) {
+            const newPlayer = await response.json();
+            if (Array.isArray(newPlayer)) {
+                players.push(newPlayer[0]);
+                return newPlayer[0];
+            } else {
+                players.push(newPlayer);
+                return newPlayer;
+            }
+        } else {
+            const error = await response.json();
+            console.error('Failed to add player:', error);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error adding player:', error);
+        return null;
+    }
 }
 
-// Update a player
-function updatePlayer(playerId, playerData) {
-    const index = players.findIndex(p => p.id === playerId);
-    if (index !== -1) {
-        players[index] = { ...players[index], ...playerData };
-        return players[index];
+// Update a player in Supabase
+async function updatePlayer(playerId, playerData) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(playerData)
+        });
+        
+        if (response.ok) {
+            const index = players.findIndex(p => p.id === playerId);
+            if (index !== -1) {
+                players[index] = { ...players[index], ...playerData };
+                return players[index];
+            }
+            return null;
+        } else {
+            console.error('Failed to update player:', response.statusText);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error updating player:', error);
+        return null;
     }
-    return null;
 }
 
-// Delete a player
-function deletePlayer(playerId) {
-    const index = players.findIndex(p => p.id === playerId);
-    if (index !== -1) {
-        players.splice(index, 1);
-        return true;
+// Delete a player from Supabase
+async function deletePlayer(playerId) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            const index = players.findIndex(p => p.id === playerId);
+            if (index !== -1) {
+                players.splice(index, 1);
+                return true;
+            }
+            return false;
+        } else {
+            console.error('Failed to delete player:', response.statusText);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error deleting player:', error);
+        return false;
     }
-    return false;
 }
 
 // Search players
@@ -92,3 +176,6 @@ function searchPlayers(query) {
         p.faction.toLowerCase().includes(query.toLowerCase())
     );
 }
+
+// Initialize players when page loads
+initializePlayers();
