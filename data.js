@@ -1,3 +1,7 @@
+// Supabase configuration
+const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
+
 // Tier point values
 const TIER_POINTS = {
     'LT5': 10,
@@ -12,10 +16,41 @@ const TIER_POINTS = {
     'HT1': 100
 };
 
-// Players array (will be loaded from local storage or Supabase)
-let players = [
-    { id: 1, username: 'KABRATEAM', avatar: 'https://www.roblox.com/avatar/?userId=1&format=png&size=150x150', region: 'Europe', faction: 'N/A', longRangeTier: 'LT3', cqcTier: 'HT3', notes: '' }
-];
+// Players array (will be loaded from Supabase)
+let players = [];
+
+// Initialize app - load players from Supabase
+async function initializePlayers() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            // Map Supabase columns to our format
+            players = data.map(p => ({
+                id: p.id,
+                username: p.username,
+                avatar: p.avatar,
+                region: p.region,
+                faction: p.faction,
+                longRangeTier: p.LongRangeTier,
+                cqcTier: p.CqcTier
+            }));
+            console.log('Players loaded from Supabase:', players);
+        } else {
+            console.error('Failed to load players:', response.statusText);
+            players = [];
+        }
+    } catch (error) {
+        console.error('Error loading players:', error);
+        players = [];
+    }
+}
 
 // Calculate points based on tier
 function getPointsForTier(tier) {
@@ -45,48 +80,112 @@ function getPlayersSortedBy(category) {
     return sorted.slice(0, 100); // Top 100
 }
 
-// Add a new player
+// Add a new player to Supabase
 async function addPlayer(playerData) {
     try {
-        const newPlayer = {
-            id: Math.max(...players.map(p => p.id), 0) + 1,
-            ...playerData
+        const payload = {
+            username: playerData.username,
+            avatar: playerData.avatar,
+            region: playerData.region,
+            faction: playerData.faction || 'N/A',
+            LongRangeTier: playerData.longRangeTier,
+            CqcTier: playerData.cqcTier
         };
-        players.push(newPlayer);
-        localStorage.setItem('players', JSON.stringify(players));
-        return newPlayer;
+
+        console.log('Sending player data:', payload);
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const responseData = await response.json();
+        console.log('Response:', responseData);
+
+        if (response.ok) {
+            const newPlayer = Array.isArray(responseData) ? responseData[0] : responseData;
+            const mappedPlayer = {
+                id: newPlayer.id,
+                username: newPlayer.username,
+                avatar: newPlayer.avatar,
+                region: newPlayer.region,
+                faction: newPlayer.faction,
+                longRangeTier: newPlayer.LongRangeTier,
+                cqcTier: newPlayer.CqcTier
+            };
+            players.push(mappedPlayer);
+            return mappedPlayer;
+        } else {
+            console.error('Failed to add player:', responseData);
+            return null;
+        }
     } catch (error) {
         console.error('Error adding player:', error);
         return null;
     }
 }
 
-// Update a player
+// Update a player in Supabase
 async function updatePlayer(playerId, playerData) {
     try {
-        const index = players.findIndex(p => p.id === playerId);
-        if (index !== -1) {
-            players[index] = { ...players[index], ...playerData };
-            localStorage.setItem('players', JSON.stringify(players));
-            return players[index];
+        const payload = {
+            LongRangeTier: playerData.longRangeTier,
+            CqcTier: playerData.cqcTier
+        };
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            const index = players.findIndex(p => p.id === playerId);
+            if (index !== -1) {
+                players[index] = { ...players[index], ...playerData };
+                return players[index];
+            }
+            return null;
+        } else {
+            console.error('Failed to update player:', response.statusText);
+            return null;
         }
-        return null;
     } catch (error) {
         console.error('Error updating player:', error);
         return null;
     }
 }
 
-// Delete a player
+// Delete a player from Supabase
 async function deletePlayer(playerId) {
     try {
-        const index = players.findIndex(p => p.id === playerId);
-        if (index !== -1) {
-            players.splice(index, 1);
-            localStorage.setItem('players', JSON.stringify(players));
-            return true;
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            const index = players.findIndex(p => p.id === playerId);
+            if (index !== -1) {
+                players.splice(index, 1);
+                return true;
+            }
+            return false;
+        } else {
+            console.error('Failed to delete player:', response.statusText);
+            return false;
         }
-        return false;
     } catch (error) {
         console.error('Error deleting player:', error);
         return false;
@@ -98,18 +197,9 @@ function searchPlayers(query) {
     return players.filter(p => 
         p.username.toLowerCase().includes(query.toLowerCase()) ||
         p.region.toLowerCase().includes(query.toLowerCase()) ||
-        (p.faction && p.faction.toLowerCase().includes(query.toLowerCase()))
+        p.faction.toLowerCase().includes(query.toLowerCase())
     );
 }
 
-// Initialize players from localStorage
-async function initializePlayers() {
-    try {
-        const saved = localStorage.getItem('players');
-        if (saved) {
-            players = JSON.parse(saved);
-        }
-    } catch (error) {
-        console.error('Error loading players:', error);
-    }
-}
+// Initialize players when page loads
+initializePlayers();

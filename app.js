@@ -4,9 +4,10 @@ let discordLink = 'https://discord.gg';
 let isAdminLoggedIn = false;
 let editingPlayerId = null;
 
-// Admin credentials
+// Admin credentials (stored locally - you can add more)
 const ADMIN_CREDENTIALS = [
     { email: 'redlineproductionss@gmail.com', password: 'r51684420' }
+    // Add more admins like: { email: 'user@example.com', password: 'pass123' }
 ];
 
 // Region abbreviations and colors
@@ -84,11 +85,6 @@ function setupEventListeners() {
         }
     });
 
-    // Logout button
-    if (document.getElementById('logoutBtn')) {
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    }
-
     // Close buttons - specific modal handling
     document.querySelectorAll('.close').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -129,33 +125,31 @@ function handleAdminLogin() {
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value.trim();
 
+    console.log('Login attempt:', email);
+    console.log('Credentials available:', ADMIN_CREDENTIALS);
+
     // Check credentials
     const isValid = ADMIN_CREDENTIALS.some(admin => 
         admin.email === email && admin.password === password
     );
 
     if (isValid) {
+        console.log('Login successful!');
         isAdminLoggedIn = true;
         localStorage.setItem('adminLoggedIn', 'true');
         document.getElementById('adminLoginModal').classList.remove('show');
         document.getElementById('adminLoginForm').reset();
         openAdminPanel();
     } else {
+        console.log('Login failed - invalid credentials');
         alert('Invalid email or password!');
         document.getElementById('adminLoginForm').reset();
     }
 }
 
-// Logout handler
-function handleLogout() {
-    isAdminLoggedIn = false;
-    localStorage.removeItem('adminLoggedIn');
-    document.getElementById('adminModal').classList.remove('show');
-    alert('Logged out successfully!');
-}
-
 // Show admin login modal
 function showAdminLoginModal() {
+    console.log('Opening login modal');
     document.getElementById('adminLoginModal').classList.add('show');
 }
 
