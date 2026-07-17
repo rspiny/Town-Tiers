@@ -228,7 +228,7 @@ body {
 
 .leaderboard-header {
     display: grid;
-    grid-template-columns: 60px 60px 1.5fr 120px 180px 80px;
+    grid-template-columns: 60px 60px 1.5fr 100px 120px 80px;
     gap: 20px;
     padding: 16px 20px;
     color: var(--text-secondary);
@@ -241,7 +241,7 @@ body {
 
 .player-row {
     display: grid;
-    grid-template-columns: 60px 60px 1.5fr 120px 180px 80px;
+    grid-template-columns: 60px 60px 1.5fr 100px 120px 80px;
     gap: 20px;
     align-items: center;
     background: var(--card-bg);
@@ -305,6 +305,7 @@ body {
     flex-direction: column;
     gap: 8px;
     min-width: 0;
+    padding-left: 12px;
 }
 
 .player-name {
@@ -342,16 +343,32 @@ body {
 
 .player-tiers {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 4px;
     justify-content: center;
     align-items: center;
+}
+
+.tier-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.tier-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .tier-small {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 14px;
+    padding: 5px 10px;
     background: rgba(100, 100, 100, 0.4);
     color: #e0e0e0;
     border-radius: 5px;
@@ -361,8 +378,8 @@ body {
     border: 1.5px solid rgba(255, 255, 255, 0.15);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    min-width: 55px;
-    min-height: 35px;
+    min-width: 45px;
+    min-height: 28px;
 }
 
 .region-badge {
@@ -713,13 +730,15 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    /* Desktop: rank | avatar | name | tiers | points | region (6 cols)
+       Mobile:  rank | avatar | name | points | region (5 cols, tiers hidden) */
     .player-row {
-        grid-template-columns: 50px 50px 1fr 80px;
+        grid-template-columns: 50px 50px 1fr 100px 70px;
         gap: 12px;
     }
 
     .leaderboard-header {
-        grid-template-columns: 50px 50px 1fr 80px;
+        grid-template-columns: 50px 50px 1fr 100px 70px;
         gap: 12px;
     }
 
