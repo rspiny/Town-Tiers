@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REDLINE PVP - Redline Tiers Top 100 Rankings</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Load Supabase library FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -121,7 +123,7 @@
             <!-- Players List -->
             <div class="admin-section">
                 <div class="section-header">
-                    <h3>PLAYERS ({{ playerCount }})</h3>
+                    <h3>PLAYERS</h3>
                     <button class="btn btn-add" id="addPlayerBtn">+ Add Player</button>
                 </div>
                 <div class="players-list" id="playersList"></div>
@@ -213,7 +215,8 @@
             </form>
         </div>
     </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Load scripts in correct order -->
     <script src="data.js"></script>
     <script src="app.js"></script>
 </body>
