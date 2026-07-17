@@ -4,6 +4,11 @@ let discordLink = 'https://discord.gg';
 let isAdminLoggedIn = false;
 let editingPlayerId = null;
 
+// Admin credentials
+const ADMIN_CREDENTIALS = [
+    { email: 'redlineproductionss@gmail.com', password: 'r51684420' }
+];
+
 // Region abbreviations and colors
 const REGION_CONFIG = {
     'Europe': { abbr: 'EU', color: '#FF4444' },
@@ -21,7 +26,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDiscordLink();
     renderLeaderboards();
     setupEventListeners();
-    checkAdminSession();
 });
 
 // Event listeners
@@ -120,57 +124,34 @@ function setupEventListeners() {
     });
 }
 
-// Check if admin session exists from Supabase
-async function checkAdminSession() {
-    try {
-        const { data } = await supabaseClient.auth.getSession();
-        if (data.session) {
-            isAdminLoggedIn = true;
-        }
-    } catch (error) {
-        console.log('No active session');
-    }
-}
-
-// Admin login handler with Supabase
-async function handleAdminLogin() {
+// Admin login handler
+function handleAdminLogin() {
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value.trim();
 
-    try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
+    // Check credentials
+    const isValid = ADMIN_CREDENTIALS.some(admin => 
+        admin.email === email && admin.password === password
+    );
 
-        if (error) {
-            alert('Invalid email or password!');
-            document.getElementById('adminLoginForm').reset();
-            return;
-        }
-
-        if (data.session) {
-            isAdminLoggedIn = true;
-            document.getElementById('adminLoginModal').classList.remove('show');
-            document.getElementById('adminLoginForm').reset();
-            openAdminPanel();
-        }
-    } catch (error) {
-        alert('Login error: ' + error.message);
+    if (isValid) {
+        isAdminLoggedIn = true;
+        localStorage.setItem('adminLoggedIn', 'true');
+        document.getElementById('adminLoginModal').classList.remove('show');
+        document.getElementById('adminLoginForm').reset();
+        openAdminPanel();
+    } else {
+        alert('Invalid email or password!');
         document.getElementById('adminLoginForm').reset();
     }
 }
 
 // Logout handler
-async function handleLogout() {
-    try {
-        await supabaseClient.auth.signOut();
-        isAdminLoggedIn = false;
-        document.getElementById('adminModal').classList.remove('show');
-        alert('Logged out successfully!');
-    } catch (error) {
-        alert('Logout error: ' + error.message);
-    }
+function handleLogout() {
+    isAdminLoggedIn = false;
+    localStorage.removeItem('adminLoggedIn');
+    document.getElementById('adminModal').classList.remove('show');
+    alert('Logged out successfully!');
 }
 
 // Show admin login modal
@@ -457,3 +438,10 @@ function loadDiscordLink() {
     const saved = localStorage.getItem('discordLink');
     if (saved) discordLink = saved;
 }
+
+// Check if admin is logged in on page load
+window.addEventListener('load', () => {
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+        isAdminLoggedIn = true;
+    }
+});
