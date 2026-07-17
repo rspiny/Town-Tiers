@@ -212,11 +212,17 @@ function renderLeaderboard(category) {
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
                 </div>
-                <div class="player-points-display">${points} pts</div>
                 <div class="player-tiers">
-                    <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    <div class="tier-entry">
+                        <span class="tier-label">LRC</span>
+                        <span class="tier-small">${player.longRangeTier}</span>
+                    </div>
+                    <div class="tier-entry">
+                        <span class="tier-label">CQC</span>
+                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    </div>
                 </div>
+                <div class="player-points-display">${points} pts</div>
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
             </div>
         `;
@@ -254,11 +260,17 @@ function handleSearch(query) {
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
                 </div>
-                <div class="player-points-display">${points} pts</div>
                 <div class="player-tiers">
-                    <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    <div class="tier-entry">
+                        <span class="tier-label">LRC</span>
+                        <span class="tier-small">${player.longRangeTier}</span>
+                    </div>
+                    <div class="tier-entry">
+                        <span class="tier-label">CQC</span>
+                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    </div>
                 </div>
+                <div class="player-points-display">${points} pts</div>
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
             </div>
         `;
