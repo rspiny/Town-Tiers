@@ -10,6 +10,17 @@ const ADMIN_CREDENTIALS = [
     // Add more admins like: { email: 'user@example.com', password: 'pass123' }
 ];
 
+// Region abbreviations
+const REGION_ABBR = {
+    'Europe': 'EU',
+    'North America': 'NA',
+    'South America': 'SA',
+    'Asia': 'AS',
+    'Middle East': 'ME',
+    'Africa': 'AF',
+    'Oceania': 'OC'
+};
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     await initializePlayers();
@@ -187,6 +198,8 @@ function renderLeaderboard(category) {
                        category === 'long-range' ? getPointsForTier(player.longRangeTier) :
                        getPointsForTier(player.cqcTier);
 
+        const regionAbbr = REGION_ABBR[player.region] || player.region.substring(0, 2).toUpperCase();
+
         let rankClass = 'rank-other';
         if (rank === 1) rankClass = 'rank-1';
         else if (rank === 2) rankClass = 'rank-2';
@@ -198,16 +211,14 @@ function renderLeaderboard(category) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.faction}<span class="player-region">${player.region}</span></div>
+                    <div class="player-meta">${player.faction}</div>
                 </div>
-                <div class="player-stats">
-                    <div class="player-row-points">${points}</div>
-                    <div class="player-tiers">
-                        <span class="tier-small">${player.longRangeTier}</span>
-                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
-                    </div>
+                <div class="player-points-display">${points} pts</div>
+                <div class="player-tiers">
+                    <span class="tier-small">${player.longRangeTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
                 </div>
-                <div class="player-row-chevron">›</div>
+                <div class="region-badge">${regionAbbr}</div>
             </div>
         `;
     }).join('');
@@ -236,21 +247,21 @@ function handleSearch(query) {
                        currentTab === 'long-range' ? getPointsForTier(player.longRangeTier) :
                        getPointsForTier(player.cqcTier);
 
+        const regionAbbr = REGION_ABBR[player.region] || player.region.substring(0, 2).toUpperCase();
+
         return `
             <div class="player-row" onclick="openPlayerModal(${player.id})">
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.faction}<span class="player-region">${player.region}</span></div>
+                    <div class="player-meta">${player.faction}</div>
                 </div>
-                <div class="player-stats">
-                    <div class="player-row-points">${points}</div>
-                    <div class="player-tiers">
-                        <span class="tier-small">${player.longRangeTier}</span>
-                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
-                    </div>
+                <div class="player-points-display">${points} pts</div>
+                <div class="player-tiers">
+                    <span class="tier-small">${player.longRangeTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
                 </div>
-                <div class="player-row-chevron">›</div>
+                <div class="region-badge">${regionAbbr}</div>
             </div>
         `;
     }).join('');
