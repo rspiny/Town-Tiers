@@ -2,12 +2,6 @@
 const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
 
-// Initialize Supabase client (only once)
-let supabase;
-if (window.supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-}
-
 // Tier point values
 const TIER_POINTS = {
     'LT5': 10,
@@ -206,3 +200,6 @@ function searchPlayers(query) {
         p.faction.toLowerCase().includes(query.toLowerCase())
     );
 }
+
+// Initialize players when page loads
+initializePlayers();

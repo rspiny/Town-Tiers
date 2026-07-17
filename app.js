@@ -4,36 +4,19 @@ let discordLink = 'https://discord.gg';
 let isAdminLoggedIn = false;
 let editingPlayerId = null;
 
+// Admin credentials (stored locally - you can add more)
+const ADMIN_CREDENTIALS = [
+    { email: 'redlineproductionss@gmail.com', password: 'r51684420' }
+    // Add more admins like: { email: 'user@example.com', password: 'pass123' }
+];
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded, initializing...');
-    try {
-        await initializePlayers();
-        loadDiscordLink();
-        renderLeaderboards();
-        setupEventListeners();
-        checkAdminSession();
-    } catch (error) {
-        console.error('Error during initialization:', error);
-    }
+    await initializePlayers();
+    loadDiscordLink();
+    renderLeaderboards();
+    setupEventListeners();
 });
-
-// Check if user is already logged in
-async function checkAdminSession() {
-    try {
-        if (!supabase) {
-            console.warn('Supabase not initialized yet');
-            return;
-        }
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            isAdminLoggedIn = true;
-            console.log('User already logged in:', session.user.email);
-        }
-    } catch (error) {
-        console.error('Error checking session:', error);
-    }
-}
 
 // Event listeners
 function setupEventListeners() {
@@ -126,45 +109,29 @@ function setupEventListeners() {
     });
 }
 
-// Admin login handler - uses Supabase Authentication
-async function handleAdminLogin() {
+// Admin login handler
+function handleAdminLogin() {
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value.trim();
 
-    if (!email || !password) {
-        alert('Please enter email and password!');
-        return;
-    }
+    console.log('Login attempt:', email);
+    console.log('Credentials available:', ADMIN_CREDENTIALS);
 
-    if (!supabase) {
-        alert('Authentication system is not ready. Please refresh the page.');
-        return;
-    }
+    // Check credentials
+    const isValid = ADMIN_CREDENTIALS.some(admin => 
+        admin.email === email && admin.password === password
+    );
 
-    try {
-        // Send login request to Supabase - password is sent securely
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-
-        if (error) {
-            console.error('Login error:', error.message);
-            alert('Invalid email or password!');
-            document.getElementById('adminLoginForm').reset();
-            return;
-        }
-
-        if (data.session) {
-            console.log('Login successful! User:', data.user.email);
-            isAdminLoggedIn = true;
-            document.getElementById('adminLoginModal').classList.remove('show');
-            document.getElementById('adminLoginForm').reset();
-            openAdminPanel();
-        }
-    } catch (error) {
-        console.error('Unexpected error:', error);
-        alert('An error occurred. Please try again.');
+    if (isValid) {
+        console.log('Login successful!');
+        isAdminLoggedIn = true;
+        localStorage.setItem('adminLoggedIn', 'true');
+        document.getElementById('adminLoginModal').classList.remove('show');
+        document.getElementById('adminLoginForm').reset();
+        openAdminPanel();
+    } else {
+        console.log('Login failed - invalid credentials');
+        alert('Invalid email or password!');
         document.getElementById('adminLoginForm').reset();
     }
 }
@@ -214,16 +181,7 @@ function renderLeaderboard(category) {
         return;
     }
 
-    let html = `<div class="leaderboard-header">
-        <div>#</div>
-        <div></div>
-        <div>PLAYER</div>
-        <div>REGION</div>
-        <div>TIERS</div>
-        <div></div>
-    </div>`;
-
-    html += sortedPlayers.map((player, index) => {
+    container.innerHTML = sortedPlayers.map((player, index) => {
         const rank = index + 1;
         const points = category === 'overall' ? calculatePlayerPoints(player) :
                        category === 'long-range' ? getPointsForTier(player.longRangeTier) :
@@ -240,21 +198,19 @@ function renderLeaderboard(category) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.faction}</div>
+                    <div class="player-meta">${player.faction}<span class="player-region">${player.region}</span></div>
                 </div>
                 <div class="player-stats">
-                    <span class="player-region">${player.region}</span>
-                </div>
-                <div class="player-tiers">
-                    <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small">${player.cqcTier}</span>
+                    <div class="player-row-points">${points}</div>
+                    <div class="player-tiers">
+                        <span class="tier-small">${player.longRangeTier}</span>
+                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    </div>
                 </div>
                 <div class="player-row-chevron">›</div>
             </div>
         `;
     }).join('');
-
-    container.innerHTML = html;
 }
 
 // Search handling
@@ -275,16 +231,7 @@ function handleSearch(query) {
         return;
     }
 
-    let html = `<div class="leaderboard-header">
-        <div>#</div>
-        <div></div>
-        <div>PLAYER</div>
-        <div>REGION</div>
-        <div>TIERS</div>
-        <div></div>
-    </div>`;
-
-    html += results.map((player, index) => {
+    container.innerHTML = results.map((player, index) => {
         const points = currentTab === 'overall' ? calculatePlayerPoints(player) :
                        currentTab === 'long-range' ? getPointsForTier(player.longRangeTier) :
                        getPointsForTier(player.cqcTier);
@@ -294,21 +241,19 @@ function handleSearch(query) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.faction}</div>
+                    <div class="player-meta">${player.faction}<span class="player-region">${player.region}</span></div>
                 </div>
                 <div class="player-stats">
-                    <span class="player-region">${player.region}</span>
-                </div>
-                <div class="player-tiers">
-                    <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small">${player.cqcTier}</span>
+                    <div class="player-row-points">${points}</div>
+                    <div class="player-tiers">
+                        <span class="tier-small">${player.longRangeTier}</span>
+                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    </div>
                 </div>
                 <div class="player-row-chevron">›</div>
             </div>
         `;
     }).join('');
-
-    container.innerHTML = html;
 }
 
 // Player modal
@@ -464,3 +409,10 @@ function loadDiscordLink() {
     const saved = localStorage.getItem('discordLink');
     if (saved) discordLink = saved;
 }
+
+// Check if admin is logged in on page load
+window.addEventListener('load', () => {
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+        isAdminLoggedIn = true;
+    }
+});
