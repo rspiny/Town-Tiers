@@ -10,15 +10,15 @@ const ADMIN_CREDENTIALS = [
     // Add more admins like: { email: 'user@example.com', password: 'pass123' }
 ];
 
-// Region abbreviations
-const REGION_ABBR = {
-    'Europe': 'EU',
-    'North America': 'NA',
-    'South America': 'SA',
-    'Asia': 'AS',
-    'Middle East': 'ME',
-    'Africa': 'AF',
-    'Oceania': 'OC'
+// Region abbreviations and colors
+const REGION_CONFIG = {
+    'Europe': { abbr: 'EU', color: '#FF4444' },
+    'North America': { abbr: 'NA', color: '#4A90E2' },
+    'South America': { abbr: 'SA', color: '#7ED321' },
+    'Asia': { abbr: 'AS', color: '#FFD700' },
+    'Middle East': { abbr: 'ME', color: '#FF6B6B' },
+    'Africa': { abbr: 'AF', color: '#F5A623' },
+    'Oceania': { abbr: 'OC', color: '#50E3C2' }
 };
 
 // Initialize app
@@ -198,7 +198,7 @@ function renderLeaderboard(category) {
                        category === 'long-range' ? getPointsForTier(player.longRangeTier) :
                        getPointsForTier(player.cqcTier);
 
-        const regionAbbr = REGION_ABBR[player.region] || player.region.substring(0, 2).toUpperCase();
+        const regionConfig = REGION_CONFIG[player.region] || { abbr: 'UN', color: '#999' };
 
         let rankClass = 'rank-other';
         if (rank === 1) rankClass = 'rank-1';
@@ -218,7 +218,7 @@ function renderLeaderboard(category) {
                     <span class="tier-small">${player.longRangeTier}</span>
                     <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
                 </div>
-                <div class="region-badge">${regionAbbr}</div>
+                <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
             </div>
         `;
     }).join('');
@@ -247,7 +247,7 @@ function handleSearch(query) {
                        currentTab === 'long-range' ? getPointsForTier(player.longRangeTier) :
                        getPointsForTier(player.cqcTier);
 
-        const regionAbbr = REGION_ABBR[player.region] || player.region.substring(0, 2).toUpperCase();
+        const regionConfig = REGION_CONFIG[player.region] || { abbr: 'UN', color: '#999' };
 
         return `
             <div class="player-row" onclick="openPlayerModal(${player.id})">
@@ -261,7 +261,7 @@ function handleSearch(query) {
                     <span class="tier-small">${player.longRangeTier}</span>
                     <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
                 </div>
-                <div class="region-badge">${regionAbbr}</div>
+                <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
             </div>
         `;
     }).join('');
@@ -278,10 +278,10 @@ function openPlayerModal(playerId) {
     document.getElementById('playerPoints').textContent = `${calculatePlayerPoints(player)} TOTAL POINTS`;
     
     const longRangePoints = getPointsForTier(player.longRangeTier);
-    const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : `${getPointsForTier(player.cqcTier)}pts`;
+    const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : getPointsForTier(player.cqcTier);
     
     document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier}- ${longRangePoints}pts</span>`;
-    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>`;
+    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'};">${player.cqcTier}${player.cqcTier !== 'N/A' ? '- ' + cqcPoints + 'pts' : ''}</span>`;
     
     document.getElementById('playerModal').classList.add('show');
 }
