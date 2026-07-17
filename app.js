@@ -6,16 +6,25 @@ let editingPlayerId = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
-    await initializePlayers();
-    loadDiscordLink();
-    renderLeaderboards();
-    setupEventListeners();
-    checkAdminSession();
+    console.log('DOM loaded, initializing...');
+    try {
+        await initializePlayers();
+        loadDiscordLink();
+        renderLeaderboards();
+        setupEventListeners();
+        checkAdminSession();
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
 
 // Check if user is already logged in
 async function checkAdminSession() {
     try {
+        if (!supabase) {
+            console.warn('Supabase not initialized yet');
+            return;
+        }
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             isAdminLoggedIn = true;
@@ -124,6 +133,11 @@ async function handleAdminLogin() {
 
     if (!email || !password) {
         alert('Please enter email and password!');
+        return;
+    }
+
+    if (!supabase) {
+        alert('Authentication system is not ready. Please refresh the page.');
         return;
     }
 
@@ -450,8 +464,3 @@ function loadDiscordLink() {
     const saved = localStorage.getItem('discordLink');
     if (saved) discordLink = saved;
 }
-
-// Check if admin is already logged in when page loads
-window.addEventListener('load', () => {
-    checkAdminSession();
-});
