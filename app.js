@@ -211,7 +211,6 @@ function renderLeaderboard(category) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.faction}</div>
                 </div>
                 <div class="player-points-display">${points} pts</div>
                 <div class="player-tiers">
@@ -254,7 +253,6 @@ function handleSearch(query) {
                 <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
                     <div class="player-name">${player.username}</div>
-                    <div class="player-meta">${player.faction}</div>
                 </div>
                 <div class="player-points-display">${points} pts</div>
                 <div class="player-tiers">
@@ -275,13 +273,15 @@ function openPlayerModal(playerId) {
     document.getElementById('playerName').textContent = player.username;
     document.getElementById('playerAvatar').src = player.avatar;
     document.getElementById('playerRegion').textContent = player.region;
+    document.getElementById('playerFaction').textContent = player.faction !== 'N/A' ? player.faction : '';
+    document.getElementById('playerFaction').style.display = player.faction !== 'N/A' ? '' : 'none';
     document.getElementById('playerPoints').textContent = `${calculatePlayerPoints(player)} TOTAL POINTS`;
     
     const longRangePoints = getPointsForTier(player.longRangeTier);
     const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : getPointsForTier(player.cqcTier);
     
-    document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier}- ${longRangePoints}pts</span>`;
-    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'};">${player.cqcTier}${player.cqcTier !== 'N/A' ? '- ' + cqcPoints + 'pts' : ''}</span>`;
+    document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier} - ${longRangePoints}pts</span>`;
+    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier}${player.cqcTier !== 'N/A' ? ' - ' + cqcPoints + 'pts' : ''}</span>`;
     
     document.getElementById('playerModal').classList.add('show');
 }
