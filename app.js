@@ -192,11 +192,17 @@ function renderLeaderboard(category) {
         return;
     }
 
-    container.innerHTML = sortedPlayers.map((player, index) => {
+    const header = `
+        <div class="leaderboard-header">
+            <div>#</div>
+            <div>PLAYER</div>
+            <div>REGION</div>
+            <div>TIERS</div>
+        </div>
+    `;
+
+    const rows = sortedPlayers.map((player, index) => {
         const rank = index + 1;
-        const points = category === 'overall' ? calculatePlayerPoints(player) :
-                       category === 'long-range' ? getPointsForTier(player.longRangeTier) :
-                       getPointsForTier(player.cqcTier);
 
         const regionConfig = REGION_CONFIG[player.region] || { abbr: 'UN', color: '#999' };
 
@@ -208,25 +214,20 @@ function renderLeaderboard(category) {
         return `
             <div class="player-row" onclick="openPlayerModal(${player.id})">
                 <div class="rank-badge ${rankClass}">${rank}</div>
-                <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                 <div class="player-info-section">
+                    <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                     <div class="player-name">${player.username}</div>
                 </div>
-                <div class="player-tiers">
-                    <div class="tier-entry">
-                        <span class="tier-label">LRC</span>
-                        <span class="tier-small">${player.longRangeTier}</span>
-                    </div>
-                    <div class="tier-entry">
-                        <span class="tier-label">CQC</span>
-                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
-                    </div>
-                </div>
-                <div class="player-points-display">${points} pts</div>
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
+                <div class="player-tiers">
+                    <span class="tier-small">${player.longRangeTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                </div>
             </div>
         `;
     }).join('');
+
+    container.innerHTML = header + rows;
 }
 
 // Search handling
@@ -247,31 +248,30 @@ function handleSearch(query) {
         return;
     }
 
-    container.innerHTML = results.map((player, index) => {
-        const points = currentTab === 'overall' ? calculatePlayerPoints(player) :
-                       currentTab === 'long-range' ? getPointsForTier(player.longRangeTier) :
-                       getPointsForTier(player.cqcTier);
+    const header = `
+        <div class="leaderboard-header">
+            <div>#</div>
+            <div>PLAYER</div>
+            <div>REGION</div>
+            <div>TIERS</div>
+        </div>
+    `;
 
+    container.innerHTML = header + results.map((player, index) => {
         const regionConfig = REGION_CONFIG[player.region] || { abbr: 'UN', color: '#999' };
 
         return `
             <div class="player-row" onclick="openPlayerModal(${player.id})">
-                <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
+                <div class="rank-badge rank-other">—</div>
                 <div class="player-info-section">
+                    <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                     <div class="player-name">${player.username}</div>
                 </div>
-                <div class="player-tiers">
-                    <div class="tier-entry">
-                        <span class="tier-label">LRC</span>
-                        <span class="tier-small">${player.longRangeTier}</span>
-                    </div>
-                    <div class="tier-entry">
-                        <span class="tier-label">CQC</span>
-                        <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
-                    </div>
-                </div>
-                <div class="player-points-display">${points} pts</div>
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
+                <div class="player-tiers">
+                    <span class="tier-small">${player.longRangeTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                </div>
             </div>
         `;
     }).join('');
