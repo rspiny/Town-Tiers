@@ -228,7 +228,7 @@ body {
 
 .leaderboard-header {
     display: grid;
-    grid-template-columns: 60px 60px 1.5fr 100px 120px 80px;
+    grid-template-columns: 60px 1fr 100px 120px;
     gap: 20px;
     padding: 16px 20px;
     color: var(--text-secondary);
@@ -241,7 +241,7 @@ body {
 
 .player-row {
     display: grid;
-    grid-template-columns: 60px 60px 1.5fr 100px 120px 80px;
+    grid-template-columns: 60px 1fr 100px 120px;
     gap: 20px;
     align-items: center;
     background: var(--card-bg);
@@ -302,10 +302,16 @@ body {
 
 .player-info-section {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
     min-width: 0;
-    padding-left: 12px;
+}
+
+.player-info-section .player-avatar {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
 }
 
 .player-name {
@@ -730,15 +736,15 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
-    /* Desktop: rank | avatar | name | tiers | points | region (6 cols)
-       Mobile:  rank | avatar | name | points | region (5 cols, tiers hidden) */
+    /* Desktop: rank | player | region | tiers (4 cols)
+       Mobile:  rank | player | region (3 cols, tiers hidden) */
     .player-row {
-        grid-template-columns: 50px 50px 1fr 100px 70px;
+        grid-template-columns: 40px 1fr 70px;
         gap: 12px;
     }
 
     .leaderboard-header {
-        grid-template-columns: 50px 50px 1fr 100px 70px;
+        grid-template-columns: 40px 1fr 70px;
         gap: 12px;
     }
 
