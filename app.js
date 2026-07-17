@@ -262,7 +262,7 @@ function handleSearch(query) {
 
         return `
             <div class="player-row" onclick="openPlayerModal(${player.id})">
-                <div class="rank-badge rank-other">—</div>
+                <div class="rank-badge rank-other" aria-label="N/A">—</div>
                 <div class="player-info-section">
                     <img src="${player.avatar}" alt="${player.username}" class="player-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
                     <div class="player-name">${player.username}</div>
