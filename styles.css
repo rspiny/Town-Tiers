@@ -716,6 +716,22 @@ body {
     margin-bottom: 12px;
 }
 
+/* Footer */
+.site-footer {
+    text-align: center;
+    padding: 12px 20px;
+    margin-top: 30px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    opacity: 0.5;
+    letter-spacing: 0.3px;
+}
+
+.footer-discord {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
