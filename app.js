@@ -4,12 +4,6 @@ let discordLink = 'https://discord.gg';
 let isAdminLoggedIn = false;
 let editingPlayerId = null;
 
-// Admin credentials (stored locally - you can add more)
-const ADMIN_CREDENTIALS = [
-    { email: 'plsdontgrief', password: 'r51684420' }
-    // Add more admins like: { email: 'user@example.com', password: 'pass123' }
-];
-
 // Region abbreviations and colors
 const REGION_CONFIG = {
     'Europe': { abbr: 'EU', color: '#FF4444' },
@@ -48,14 +42,6 @@ function setupEventListeners() {
         if (discordLink) window.open(discordLink, '_blank');
     });
 
-    document.getElementById('adminBtn').addEventListener('click', () => {
-        if (isAdminLoggedIn) {
-            openAdminPanel();
-        } else {
-            showAdminLoginModal();
-        }
-    });
-
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
         editingPlayerId = null;
         openAddPlayerModal();
@@ -66,14 +52,6 @@ function setupEventListeners() {
         e.preventDefault();
         handleAddOrEditPlayer();
     });
-
-    // Admin login form
-    if (document.getElementById('adminLoginForm')) {
-        document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleAdminLogin();
-        });
-    }
 
     // Discord link save
     document.getElementById('saveLinkBtn').addEventListener('click', () => {
@@ -96,9 +74,6 @@ function setupEventListeners() {
                 document.getElementById('addPlayerForm').reset();
                 editingPlayerId = null;
             }
-            if (modal.id === 'adminLoginModal' && document.getElementById('adminLoginForm')) {
-                document.getElementById('adminLoginForm').reset();
-            }
         });
     });
 
@@ -118,39 +93,6 @@ function setupEventListeners() {
             }
         }
     });
-}
-
-// Admin login handler
-function handleAdminLogin() {
-    const email = document.getElementById('adminEmail').value.trim();
-    const password = document.getElementById('adminPassword').value.trim();
-
-    console.log('Login attempt:', email);
-    console.log('Credentials available:', ADMIN_CREDENTIALS);
-
-    // Check credentials
-    const isValid = ADMIN_CREDENTIALS.some(admin => 
-        admin.email === email && admin.password === password
-    );
-
-    if (isValid) {
-        console.log('Login successful!');
-        isAdminLoggedIn = true;
-        localStorage.setItem('adminLoggedIn', 'true');
-        document.getElementById('adminLoginModal').classList.remove('show');
-        document.getElementById('adminLoginForm').reset();
-        openAdminPanel();
-    } else {
-        console.log('Login failed - invalid credentials');
-        alert('Invalid email or password!');
-        document.getElementById('adminLoginForm').reset();
-    }
-}
-
-// Show admin login modal
-function showAdminLoginModal() {
-    console.log('Opening login modal');
-    document.getElementById('adminLoginModal').classList.add('show');
 }
 
 // Tab switching
@@ -188,7 +130,7 @@ function renderLeaderboard(category) {
     const sortedPlayers = getPlayersSortedBy(category);
     
     if (sortedPlayers.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No players yet. Add one in the Admin Panel!</p>';
+        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No players yet.</p>';
         return;
     }
 
@@ -221,7 +163,7 @@ function renderLeaderboard(category) {
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
                 <div class="player-tiers">
                     <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'};">${player.cqcTier}</span>
                 </div>
             </div>
         `;
@@ -270,7 +212,7 @@ function handleSearch(query) {
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
                 <div class="player-tiers">
                     <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}">${player.cqcTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'};">${player.cqcTier}</span>
                 </div>
             </div>
         `;
@@ -293,43 +235,9 @@ function openPlayerModal(playerId) {
     const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : getPointsForTier(player.cqcTier);
     
     document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier} - ${longRangePoints}pts</span>`;
-    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier}${player.cqcTier !== 'N/A' ? ' - ' + cqcPoints + 'pts' : ''}</span>`;
+    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - ${cqcPoints}pts</span>`;
     
     document.getElementById('playerModal').classList.add('show');
-}
-
-// Admin panel
-function openAdminPanel() {
-    const count = players.length;
-    document.querySelector('.admin-modal h2').innerHTML = `Admin Panel (${count} players)`;
-    document.getElementById('discordLink').value = discordLink;
-    renderPlayersList();
-    document.getElementById('adminModal').classList.add('show');
-}
-
-function renderPlayersList() {
-    const list = document.getElementById('playersList');
-    
-    if (players.length === 0) {
-        list.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No players added yet.</p>';
-        return;
-    }
-
-    list.innerHTML = players.map(player => `
-        <div class="player-item">
-            <div class="player-item-info">
-                <img src="${player.avatar}" alt="${player.username}" class="player-item-avatar" onerror="this.src='https://www.roblox.com/avatar/?userId=0&format=png&size=150x150'">
-                <div class="player-item-details">
-                    <div class="player-item-name">${player.username}</div>
-                    <div class="player-item-region">${player.region}</div>
-                </div>
-            </div>
-            <div class="player-item-actions">
-                <button class="player-item-btn edit" onclick="startEditPlayer(event, ${player.id})" title="Edit">✏️</button>
-                <button class="player-item-btn delete" onclick="deletePlayerConfirm(event, ${player.id})" title="Delete">🗑️</button>
-            </div>
-        </div>
-    `).join('');
 }
 
 // Add player
@@ -408,7 +316,6 @@ async function handleAddOrEditPlayer() {
         document.getElementById('addPlayerForm').reset();
         document.getElementById('addPlayerModal').classList.remove('show');
         renderLeaderboards();
-        renderPlayersList();
         editingPlayerId = null;
     }
 }
@@ -420,7 +327,6 @@ async function deletePlayerConfirm(event, playerId) {
         const result = await deletePlayer(playerId);
         if (result) {
             renderLeaderboards();
-            renderPlayersList();
         } else {
             alert('Error deleting player. Please try again.');
         }
@@ -432,10 +338,3 @@ function loadDiscordLink() {
     const saved = localStorage.getItem('discordLink');
     if (saved) discordLink = saved;
 }
-
-// Check if admin is logged in on page load
-window.addEventListener('load', () => {
-    if (localStorage.getItem('adminLoggedIn') === 'true') {
-        isAdminLoggedIn = true;
-    }
-});
