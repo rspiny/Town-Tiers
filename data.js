@@ -1,6 +1,7 @@
-// Supabase configuration
-const SUPABASE_URL = 'https://okgnwaeszuihxmmjzbew.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_oiVJClYzpLqLCbqQKXNlng_AUJfaXi8';
+// Supabase configuration - SET THESE ENVIRONMENT VARIABLES
+// DO NOT HARDCODE CREDENTIALS IN CLIENT CODE
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY || '';
 
 // Tier point values
 const TIER_POINTS = {
