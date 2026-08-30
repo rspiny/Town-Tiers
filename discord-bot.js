@@ -2,9 +2,15 @@ import { Client, GatewayIntentBits, SlashCommandBuilder } from 'discord.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const GUILD_ID = process.env.DISCORD_GUILD_ID;
+const API_SECRET = process.env.API_SECRET;
 const API_URL = process.env.VERCEL_URL 
   ? `https://${process.env.VERCEL_URL}/api/players`
   : 'http://localhost:3000/api/players';
+
+// Verify API_SECRET is configured
+if (!API_SECRET) {
+  console.error('ERROR: API_SECRET environment variable is not set. Discord bot will not be able to modify the leaderboard.');
+}
 
 client.once('ready', () => {
   console.log(`✅ Bot logged in as ${client.user.tag}`);
@@ -101,7 +107,10 @@ client.on('interactionCreate', async (interaction) => {
 
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_SECRET}`
+        },
         body: JSON.stringify({
           username,
           avatar,
@@ -141,7 +150,10 @@ client.on('interactionCreate', async (interaction) => {
 
       const response = await fetch(API_URL, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_SECRET}`
+        },
         body: JSON.stringify({
           id: playerId,
           longRangeTier: longrange,
@@ -175,7 +187,10 @@ client.on('interactionCreate', async (interaction) => {
 
       const response = await fetch(API_URL, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_SECRET}`
+        },
         body: JSON.stringify({ id: playerId })
       });
 
