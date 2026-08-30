@@ -1,36 +1,43 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 
-// Use Vercel KV for persistent data storage
+// Initialize Redis client using environment variables from Upstash
+// These are automatically set by Vercel when you connect Upstash Redis via Marketplace
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+// Use Upstash as the single source of truth for all player data
 const PLAYERS_KEY = 'town-tiers:players';
 
-// Helper to get current player ID counter
+// Helper to get next player ID
 async function getNextPlayerId() {
-  let counter = await kv.get('town-tiers:player-id-counter');
+  let counter = await redis.get('town-tiers:player-id-counter');
   if (!counter) counter = 0;
   counter = Number(counter) + 1;
-  await kv.set('town-tiers:player-id-counter', counter);
+  await redis.set('town-tiers:player-id-counter', counter);
   return counter;
 }
 
-// Helper to get all players from KV
+// Helper to get all players from Redis
 async function getAllPlayers() {
   try {
-    const playersJson = await kv.get(PLAYERS_KEY);
+    const playersJson = await redis.get(PLAYERS_KEY);
     if (!playersJson) return [];
     return Array.isArray(playersJson) ? playersJson : [];
   } catch (error) {
-    console.error('Error reading from KV:', error);
+    console.error('Error reading from Redis:', error);
     return [];
   }
 }
 
-// Helper to save all players to KV
+// Helper to save all players to Redis
 async function saveAllPlayers(players) {
   try {
-    await kv.set(PLAYERS_KEY, players);
+    await redis.set(PLAYERS_KEY, players);
   } catch (error) {
-    console.error('Error writing to KV:', error);
-    throw new Error('Failed to save player data');
+    console.error('Error writing to Redis:', error);
+    throw new Error('Failed to save player data to Redis');
   }
 }
 
