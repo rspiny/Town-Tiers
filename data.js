@@ -25,7 +25,7 @@ async function initializePlayers() {
         
         if (response.ok) {
             const data = await response.json();
-            // Map Supabase columns to our format
+            // Map API fields to our format
             players = data.map(p => ({
                 id: p.id,
                 username: p.username,
