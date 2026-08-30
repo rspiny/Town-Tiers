@@ -127,6 +127,12 @@ function renderLeaderboard(category) {
                       'cqcLeaderboard';
     const container = document.getElementById(elementId);
     
+    // Check for API error
+    if (apiError && players.length === 0) {
+        container.innerHTML = `<p style="text-align: center; color: #ff6b6b; padding: 40px;">⚠️ Unable to load leaderboard data. ${apiError}</p>`;
+        return;
+    }
+
     const sortedPlayers = getPlayersSortedBy(category);
     
     if (sortedPlayers.length === 0) {
@@ -163,7 +169,7 @@ function renderLeaderboard(category) {
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
                 <div class="player-tiers">
                     <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'};">${player.cqcTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-pu[...]
                 </div>
             </div>
         `;
@@ -212,7 +218,7 @@ function handleSearch(query) {
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
                 <div class="player-tiers">
                     <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'};">${player.cqcTier}</span>
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-pu[...]
                 </div>
             </div>
         `;
@@ -235,7 +241,7 @@ function openPlayerModal(playerId) {
     const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : getPointsForTier(player.cqcTier);
     
     document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier} - ${longRangePoints}pts</span>`;
-    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - ${cqcPoints}pts</span>`;
+    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - [...]
     
     document.getElementById('playerModal').classList.add('show');
 }
@@ -293,30 +299,30 @@ async function handleAddOrEditPlayer() {
         notes
     };
 
-    let result;
-    if (editingPlayerId) {
-        // Edit existing player
-        result = await updatePlayer(editingPlayerId, playerData);
-        if (result) {
-            alert('Player updated successfully!');
+    try {
+        let result;
+        if (editingPlayerId) {
+            // Edit existing player
+            result = await updatePlayer(editingPlayerId, playerData);
+            if (result) {
+                alert('Player updated successfully!');
+            }
         } else {
-            alert('Error updating player. Please try again.');
+            // Add new player
+            result = await addPlayer(playerData);
+            if (result) {
+                alert('Player added successfully!');
+            }
         }
-    } else {
-        // Add new player
-        result = await addPlayer(playerData);
-        if (result) {
-            alert('Player added successfully!');
-        } else {
-            alert('Error adding player. Please try again.');
-        }
-    }
 
-    if (result) {
-        document.getElementById('addPlayerForm').reset();
-        document.getElementById('addPlayerModal').classList.remove('show');
-        renderLeaderboards();
-        editingPlayerId = null;
+        if (result) {
+            document.getElementById('addPlayerForm').reset();
+            document.getElementById('addPlayerModal').classList.remove('show');
+            renderLeaderboards();
+            editingPlayerId = null;
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
     }
 }
 
@@ -324,11 +330,13 @@ async function handleAddOrEditPlayer() {
 async function deletePlayerConfirm(event, playerId) {
     event.stopPropagation();
     if (confirm('Are you sure you want to delete this player?')) {
-        const result = await deletePlayer(playerId);
-        if (result) {
-            renderLeaderboards();
-        } else {
-            alert('Error deleting player. Please try again.');
+        try {
+            const result = await deletePlayer(playerId);
+            if (result) {
+                renderLeaderboards();
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
         }
     }
 }
