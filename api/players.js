@@ -14,9 +14,9 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET /api/players - Get all players
-  if (req.method === 'GET') {
-    try {
+  try {
+    // GET /api/players - Get all players
+    if (req.method === 'GET') {
       const { data, error } = await supabase
         .from('players')
         .select('*')
@@ -27,14 +27,10 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json(data || []);
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
     }
-  }
 
-  // POST /api/players - Add a new player
-  if (req.method === 'POST') {
-    try {
+    // POST /api/players - Add a new player
+    if (req.method === 'POST') {
       const { username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
       if (!username || !region || !longRangeTier || !cqcTier) {
@@ -60,14 +56,10 @@ export default async function handler(req, res) {
       }
 
       return res.status(201).json(data[0]);
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
     }
-  }
 
-  // PATCH /api/players - Update a player
-  if (req.method === 'PATCH') {
-    try {
+    // PATCH /api/players - Update a player
+    if (req.method === 'PATCH') {
       const { id, username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
       if (!id) {
@@ -97,14 +89,10 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json(data[0]);
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
     }
-  }
 
-  // DELETE /api/players - Delete a player
-  if (req.method === 'DELETE') {
-    try {
+    // DELETE /api/players - Delete a player
+    if (req.method === 'DELETE') {
       const { id } = req.body;
 
       if (!id) {
@@ -126,10 +114,11 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json(data[0]);
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
     }
-  }
 
-  res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (err) {
+    console.error('API Error:', err);
+    return res.status(500).json({ error: err.message });
+  }
 }
