@@ -1,130 +1,81 @@
 import { Redis } from '@upstash/redis';
 
-// Initialize Redis client using environment variables from Upstash
-// These are automatically set by Vercel when you connect Upstash Redis via Marketplace
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// Use Upstash as the single source of truth for all player data
 const PLAYERS_KEY = 'town-tiers:players';
+const PLAYER_ID_COUNTER_KEY = 'town-tiers:player-id-counter';
 
-// Helper to get next player ID
+async function getPlayers() {
+  const players = await redis.get(PLAYERS_KEY);
+  return players || [];
+}
+
+async function setPlayers(players) {
+  await redis.set(PLAYERS_KEY, players);
+}
+
 async function getNextPlayerId() {
-  let counter = await redis.get('town-tiers:player-id-counter');
-  if (!counter) counter = 0;
-  counter = Number(counter) + 1;
-  await redis.set('town-tiers:player-id-counter', counter);
-  return counter;
-}
-
-// Helper to get all players from Redis
-async function getAllPlayers() {
-  try {
-    const playersJson = await redis.get(PLAYERS_KEY);
-    if (!playersJson) return [];
-    return Array.isArray(playersJson) ? playersJson : [];
-  } catch (error) {
-    console.error('Error reading from Redis:', error);
-    return [];
-  }
-}
-
-// Helper to save all players to Redis
-async function saveAllPlayers(players) {
-  try {
-    await redis.set(PLAYERS_KEY, players);
-  } catch (error) {
-    console.error('Error writing to Redis:', error);
-    throw new Error('Failed to save player data to Redis');
-  }
-}
-
-// Verify API authentication for mutations
-function verifyApiSecret(req) {
-  const authHeader = req.headers.authorization;
-  const expectedSecret = process.env.API_SECRET;
-  
-  // No secret configured = open API (development only)
-  if (!expectedSecret) {
-    return true;
-  }
-  
-  if (!authHeader) {
-    return false;
-  }
-  
-  const [scheme, token] = authHeader.split(' ');
-  return scheme === 'Bearer' && token === expectedSecret;
+  const nextId = await redis.incr(PLAYER_ID_COUNTER_KEY);
+  return nextId;
 }
 
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   try {
-    // GET /api/players - Get all players (public, no auth required)
+    // GET /api/players - Get all players
     if (req.method === 'GET') {
-      const players = await getAllPlayers();
+      const players = await getPlayers();
       return res.status(200).json(players);
     }
 
-    // POST /api/players - Add a new player (requires auth)
+    // POST /api/players - Add a new player
     if (req.method === 'POST') {
-      if (!verifyApiSecret(req)) {
-        return res.status(401).json({ error: 'Unauthorized. API_SECRET required for mutations.' });
-      }
-
       const { username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
       if (!username || !region || !longRangeTier || !cqcTier) {
-        return res.status(400).json({ error: 'Missing required fields: username, region, longRangeTier, cqcTier' });
+        return res.status(400).json({ error: 'Username, region, longRangeTier, and cqcTier are required' });
       }
 
-      const players = await getAllPlayers();
-      
-      // Check for duplicate username
-      if (players.some(p => p.username.toLowerCase() === username.toLowerCase())) {
-        return res.status(409).json({ error: 'Player with this username already exists' });
-      }
+      const nextId = await getNextPlayerId();
 
       const newPlayer = {
-        id: await getNextPlayerId(),
+        id: nextId,
         username,
         avatar: avatar || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
         region,
         faction: faction || 'N/A',
         longRangeTier,
         cqcTier,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
+      const players = await getPlayers();
       players.push(newPlayer);
-      await saveAllPlayers(players);
+      await setPlayers(players);
 
       return res.status(201).json(newPlayer);
     }
 
-    // PATCH /api/players - Update a player (requires auth)
+    // PATCH /api/players - Update a player
     if (req.method === 'PATCH') {
-      if (!verifyApiSecret(req)) {
-        return res.status(401).json({ error: 'Unauthorized. API_SECRET required for mutations.' });
-      }
-
       const { id, username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Player ID is required' });
       }
 
-      const players = await getAllPlayers();
+      const players = await getPlayers();
       const playerIndex = players.findIndex(p => p.id === Number(id));
 
       if (playerIndex === -1) {
@@ -132,34 +83,30 @@ export default async function handler(req, res) {
       }
 
       const player = players[playerIndex];
-      
-      // Update only provided fields
-      if (username) player.username = username;
-      if (avatar) player.avatar = avatar;
-      if (region) player.region = region;
+
+      if (username !== undefined) player.username = username;
+      if (avatar !== undefined) player.avatar = avatar;
+      if (region !== undefined) player.region = region;
       if (faction !== undefined) player.faction = faction;
-      if (longRangeTier) player.longRangeTier = longRangeTier;
-      if (cqcTier) player.cqcTier = cqcTier;
+      if (longRangeTier !== undefined) player.longRangeTier = longRangeTier;
+      if (cqcTier !== undefined) player.cqcTier = cqcTier;
       player.updatedAt = new Date().toISOString();
 
-      await saveAllPlayers(players);
+      players[playerIndex] = player;
+      await setPlayers(players);
 
       return res.status(200).json(player);
     }
 
-    // DELETE /api/players - Delete a player (requires auth)
+    // DELETE /api/players - Delete a player
     if (req.method === 'DELETE') {
-      if (!verifyApiSecret(req)) {
-        return res.status(401).json({ error: 'Unauthorized. API_SECRET required for mutations.' });
-      }
-
       const { id } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Player ID is required' });
       }
 
-      const players = await getAllPlayers();
+      const players = await getPlayers();
       const playerIndex = players.findIndex(p => p.id === Number(id));
 
       if (playerIndex === -1) {
@@ -167,14 +114,14 @@ export default async function handler(req, res) {
       }
 
       const [deleted] = players.splice(playerIndex, 1);
-      await saveAllPlayers(players);
+      await setPlayers(players);
 
       return res.status(200).json(deleted);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: 'Internal server error: ' + error.message });
+  } catch (err) {
+    console.error('API Error:', err);
+    return res.status(500).json({ error: `Server error: ${err.message}` });
   }
 }
