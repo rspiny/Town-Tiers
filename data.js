@@ -12,36 +12,43 @@ const TIER_POINTS = {
     'HT1': 100
 };
 
-// API Base URL - NO CREDENTIALS EXPOSED
-const API_URL = 'https://redline-tiers-o0b97o8z8-redlineproductionss-1535e-projects.vercel.app/api/players';
+// API Base URL - Uses relative path to always hit same deployment
+const API_URL = '/api/players';
 
 // Players array (will be loaded from backend)
 let players = [];
+let apiError = null;
 
 // Initialize app - load players from backend
 async function initializePlayers() {
     try {
+        apiError = null;
         const response = await fetch(API_URL);
         
-        if (response.ok) {
-            const data = await response.json();
-            // Map API fields to our format
-            players = data.map(p => ({
-                id: p.id,
-                username: p.username,
-                avatar: p.avatar,
-                region: p.region,
-                faction: p.faction,
-                longRangeTier: p.LongRangeTier,
-                cqcTier: p.CqcTier
-            }));
-            console.log('Players loaded from backend:', players);
-        } else {
-            console.error('Failed to load players:', response.statusText);
-            players = [];
+        if (!response.ok) {
+            throw new Error(`API returned ${response.status}: ${response.statusText}`);
         }
+
+        const data = await response.json();
+        
+        if (!Array.isArray(data)) {
+            throw new Error('API returned invalid data format');
+        }
+
+        // Map API fields to our format (API now returns camelCase)
+        players = data.map(p => ({
+            id: p.id,
+            username: p.username,
+            avatar: p.avatar,
+            region: p.region,
+            faction: p.faction,
+            longRangeTier: p.longRangeTier,
+            cqcTier: p.cqcTier
+        }));
+        console.log('Players loaded from backend:', players);
     } catch (error) {
         console.error('Error loading players:', error);
+        apiError = error.message;
         players = [];
     }
 }
@@ -106,18 +113,18 @@ async function addPlayer(playerData) {
                 avatar: responseData.avatar,
                 region: responseData.region,
                 faction: responseData.faction,
-                longRangeTier: responseData.LongRangeTier,
-                cqcTier: responseData.CqcTier
+                longRangeTier: responseData.longRangeTier,
+                cqcTier: responseData.cqcTier
             };
             players.push(mappedPlayer);
             return mappedPlayer;
         } else {
             console.error('Failed to add player:', responseData);
-            return null;
+            throw new Error(responseData.error || 'Failed to add player');
         }
     } catch (error) {
         console.error('Error adding player:', error);
-        return null;
+        throw error;
     }
 }
 
@@ -138,20 +145,26 @@ async function updatePlayer(playerId, playerData) {
             body: JSON.stringify(payload)
         });
         
-        if (response.ok) {
-            const index = players.findIndex(p => p.id === playerId);
-            if (index !== -1) {
-                players[index] = { ...players[index], ...playerData };
-                return players[index];
-            }
-            return null;
-        } else {
-            console.error('Failed to update player:', response.statusText);
-            return null;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update player');
         }
+
+        const responseData = await response.json();
+        
+        const index = players.findIndex(p => p.id === playerId);
+        if (index !== -1) {
+            players[index] = {
+                ...players[index],
+                longRangeTier: responseData.longRangeTier,
+                cqcTier: responseData.cqcTier
+            };
+            return players[index];
+        }
+        return null;
     } catch (error) {
         console.error('Error updating player:', error);
-        return null;
+        throw error;
     }
 }
 
@@ -166,20 +179,20 @@ async function deletePlayer(playerId) {
             body: JSON.stringify({ id: playerId })
         });
         
-        if (response.ok) {
-            const index = players.findIndex(p => p.id === playerId);
-            if (index !== -1) {
-                players.splice(index, 1);
-                return true;
-            }
-            return false;
-        } else {
-            console.error('Failed to delete player:', response.statusText);
-            return false;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete player');
         }
+
+        const index = players.findIndex(p => p.id === playerId);
+        if (index !== -1) {
+            players.splice(index, 1);
+            return true;
+        }
+        return false;
     } catch (error) {
         console.error('Error deleting player:', error);
-        return false;
+        throw error;
     }
 }
 
