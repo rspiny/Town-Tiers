@@ -13,7 +13,7 @@ const TIER_POINTS = {
 };
 
 // API Base URL - NO CREDENTIALS EXPOSED
-const API_URL = 'https://redline-tiers.vercel.app/api/players';
+const API_URL = 'https://town-tiers-vu3e.vercel.app/api/players';
 
 // Players array (will be loaded from backend)
 let players = [];
