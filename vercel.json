@@ -19,8 +19,7 @@
     },
     {
       "src": "api/**/*.js",
-      "use": "@vercel/node",
-      "config": { "includeFiles": "players.json" }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
