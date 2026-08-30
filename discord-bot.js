@@ -2,24 +2,12 @@ import { Client, GatewayIntentBits, SlashCommandBuilder } from 'discord.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const GUILD_ID = process.env.DISCORD_GUILD_ID;
-const API_URL = process.env.API_URL;
-const API_SECRET = process.env.API_SECRET;
-
-// Validate environment variables on startup
-if (!API_URL) {
-  console.error('❌ ERROR: API_URL environment variable is not set!');
-  console.error('   Set it to: https://town-tiers-vu3e.vercel.app/api/players');
-  process.exit(1);
-}
-
-if (!API_SECRET) {
-  console.error('❌ WARNING: API_SECRET environment variable is not set!');
-  console.error('   API mutations will fail. Set a secure random string.');
-}
+const API_URL = process.env.VERCEL_URL 
+  ? `https://${process.env.VERCEL_URL}/api/players`
+  : 'http://localhost:3000/api/players';
 
 client.once('ready', () => {
   console.log(`✅ Bot logged in as ${client.user.tag}`);
-  console.log(`📡 API URL: ${API_URL}`);
   registerCommands();
 });
 
@@ -109,34 +97,37 @@ client.on('interactionCreate', async (interaction) => {
       const cqc = interaction.options.getString('cqc');
       const region = interaction.options.getString('region');
       const faction = interaction.options.getString('faction') || 'N/A';
-      const avatar = interaction.options.getString('avatar') || undefined;
+      const avatar = interaction.options.getString('avatar') || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150';
 
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_SECRET}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username,
-          longRangeTier: longrange,
-          cqcTier: cqc,
+          avatar,
           region,
           faction,
-          avatar
+          longRangeTier: longrange,
+          cqcTier: cqc
         })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        await interaction.editReply(`✅ Player **${username}** added to the leaderboard! (ID: ${data.id})`);
+        const player = await response.json();
+        await interaction.editReply({
+          content: `✅ Player **${player.username}** added successfully!`
+        });
       } else {
-        await interaction.editReply(`❌ Error: ${data.error || 'Failed to add player'}`);
+        const error = await response.json();
+        await interaction.editReply({
+          content: `❌ Error: ${error.error}`
+        });
       }
     } catch (error) {
-      console.error('Error adding player:', error);
-      await interaction.editReply(`❌ Error: ${error.message}`);
+      console.error('Error:', error);
+      await interaction.editReply({
+        content: `❌ Error adding player: ${error.message}`
+      });
     }
   }
 
@@ -150,10 +141,7 @@ client.on('interactionCreate', async (interaction) => {
 
       const response = await fetch(API_URL, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_SECRET}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: playerId,
           longRangeTier: longrange,
@@ -161,16 +149,21 @@ client.on('interactionCreate', async (interaction) => {
         })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        await interaction.editReply(`✅ Player **${data.username}** updated! (${data.longRangeTier}/${data.cqcTier})`);
+        await interaction.editReply({
+          content: `✅ Player **${playerId}** updated successfully!`
+        });
       } else {
-        await interaction.editReply(`❌ Error: ${data.error || 'Failed to update player'}`);
+        const error = await response.json();
+        await interaction.editReply({
+          content: `❌ Error: ${error.error}`
+        });
       }
     } catch (error) {
-      console.error('Error editing player:', error);
-      await interaction.editReply(`❌ Error: ${error.message}`);
+      console.error('Error:', error);
+      await interaction.editReply({
+        content: `❌ Error editing player: ${error.message}`
+      });
     }
   }
 
@@ -182,23 +175,25 @@ client.on('interactionCreate', async (interaction) => {
 
       const response = await fetch(API_URL, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_SECRET}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: playerId })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        await interaction.editReply(`✅ Player **${data.username}** deleted from the leaderboard.`);
+        await interaction.editReply({
+          content: `✅ Player **${playerId}** deleted successfully!`
+        });
       } else {
-        await interaction.editReply(`❌ Error: ${data.error || 'Failed to delete player'}`);
+        const error = await response.json();
+        await interaction.editReply({
+          content: `❌ Error: ${error.error}`
+        });
       }
     } catch (error) {
-      console.error('Error deleting player:', error);
-      await interaction.editReply(`❌ Error: ${error.message}`);
+      console.error('Error:', error);
+      await interaction.editReply({
+        content: `❌ Error deleting player: ${error.message}`
+      });
     }
   }
 });
