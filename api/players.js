@@ -1,8 +1,11 @@
-// In-memory database (resets when server restarts)
-let players = [];
-let nextId = 1;
+import { createClient } from '@supabase/supabase-js';
 
-export default function handler(req, res) {
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,95 +16,120 @@ export default function handler(req, res) {
 
   // GET /api/players - Get all players
   if (req.method === 'GET') {
-    const sorted = [...players].sort((a, b) => {
-      const pointsA = getPlayerPoints(a);
-      const pointsB = getPlayerPoints(b);
-      return pointsB - pointsA;
-    });
-    return res.status(200).json(sorted);
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.status(200).json(data || []);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
 
   // POST /api/players - Add a new player
   if (req.method === 'POST') {
-    const { username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
+    try {
+      const { username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
-    if (!username || !region || !longRangeTier || !cqcTier) {
-      return res.status(400).json({ error: 'Username, region, longRangeTier, and cqcTier are required' });
+      if (!username || !region || !longRangeTier || !cqcTier) {
+        return res.status(400).json({ error: 'Username, region, longRangeTier, and cqcTier are required' });
+      }
+
+      const { data, error } = await supabase
+        .from('players')
+        .insert([
+          {
+            username,
+            avatar: avatar || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
+            region,
+            faction: faction || 'N/A',
+            LongRangeTier: longRangeTier,
+            CqcTier: cqcTier
+          }
+        ])
+        .select();
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.status(201).json(data[0]);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
-
-    const newPlayer = {
-      id: nextId++,
-      username,
-      avatar: avatar || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
-      region,
-      faction: faction || 'N/A',
-      LongRangeTier: longRangeTier,
-      CqcTier: cqcTier,
-      createdAt: new Date().toISOString()
-    };
-
-    players.push(newPlayer);
-    return res.status(201).json(newPlayer);
   }
 
   // PATCH /api/players - Update a player
   if (req.method === 'PATCH') {
-    const { id, username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
+    try {
+      const { id, username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
-    if (!id) {
-      return res.status(400).json({ error: 'Player ID is required' });
+      if (!id) {
+        return res.status(400).json({ error: 'Player ID is required' });
+      }
+
+      const updateData = {};
+      if (username) updateData.username = username;
+      if (avatar) updateData.avatar = avatar;
+      if (region) updateData.region = region;
+      if (faction) updateData.faction = faction;
+      if (longRangeTier) updateData.LongRangeTier = longRangeTier;
+      if (cqcTier) updateData.CqcTier = cqcTier;
+
+      const { data, error } = await supabase
+        .from('players')
+        .update(updateData)
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      if (!data || data.length === 0) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+
+      return res.status(200).json(data[0]);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
-
-    const player = players.find(p => p.id === id);
-    if (!player) {
-      return res.status(404).json({ error: 'Player not found' });
-    }
-
-    if (username) player.username = username;
-    if (avatar) player.avatar = avatar;
-    if (region) player.region = region;
-    if (faction) player.faction = faction;
-    if (longRangeTier) player.LongRangeTier = longRangeTier;
-    if (cqcTier) player.CqcTier = cqcTier;
-
-    return res.status(200).json(player);
   }
 
   // DELETE /api/players - Delete a player
   if (req.method === 'DELETE') {
-    const { id } = req.body;
+    try {
+      const { id } = req.body;
 
-    if (!id) {
-      return res.status(400).json({ error: 'Player ID is required' });
+      if (!id) {
+        return res.status(400).json({ error: 'Player ID is required' });
+      }
+
+      const { data, error } = await supabase
+        .from('players')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      if (!data || data.length === 0) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+
+      return res.status(200).json(data[0]);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
-
-    const index = players.findIndex(p => p.id === id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Player not found' });
-    }
-
-    const deleted = players.splice(index, 1);
-    return res.status(200).json(deleted[0]);
   }
 
   res.status(405).json({ error: 'Method not allowed' });
-}
-
-function getPlayerPoints(player) {
-  const tierPoints = {
-    'LT5': 10,
-    'HT5': 20,
-    'LT4': 30,
-    'HT4': 40,
-    'LT3': 50,
-    'HT3': 60,
-    'LT2': 70,
-    'HT2': 80,
-    'LT1': 90,
-    'HT1': 100
-  };
-
-  const longRangePoints = tierPoints[player.LongRangeTier] || 0;
-  const cqcPoints = player.CqcTier === 'N/A' ? 0 : (tierPoints[player.CqcTier] || 0);
-  return longRangePoints + cqcPoints;
 }
