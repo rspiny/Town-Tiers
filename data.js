@@ -1,8 +1,3 @@
-// Supabase configuration - SET THESE ENVIRONMENT VARIABLES
-// DO NOT HARDCODE CREDENTIALS IN CLIENT CODE
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY || '';
-
 // Tier point values
 const TIER_POINTS = {
     'LT5': 10,
@@ -17,18 +12,16 @@ const TIER_POINTS = {
     'HT1': 100
 };
 
-// Players array (will be loaded from Supabase)
+// API Base URL - NO CREDENTIALS EXPOSED
+const API_URL = 'https://redline-tiers.vercel.app/api/players';
+
+// Players array (will be loaded from backend)
 let players = [];
 
-// Initialize app - load players from Supabase
+// Initialize app - load players from backend
 async function initializePlayers() {
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Content-Type': 'application/json',
-            }
-        });
+        const response = await fetch(API_URL);
         
         if (response.ok) {
             const data = await response.json();
@@ -42,7 +35,7 @@ async function initializePlayers() {
                 longRangeTier: p.LongRangeTier,
                 cqcTier: p.CqcTier
             }));
-            console.log('Players loaded from Supabase:', players);
+            console.log('Players loaded from backend:', players);
         } else {
             console.error('Failed to load players:', response.statusText);
             players = [];
@@ -81,7 +74,7 @@ function getPlayersSortedBy(category) {
     return sorted.slice(0, 100); // Top 100
 }
 
-// Add a new player to Supabase
+// Add a new player via backend
 async function addPlayer(playerData) {
     try {
         const payload = {
@@ -89,18 +82,16 @@ async function addPlayer(playerData) {
             avatar: playerData.avatar,
             region: playerData.region,
             faction: playerData.faction || 'N/A',
-            LongRangeTier: playerData.longRangeTier,
-            CqcTier: playerData.cqcTier
+            longRangeTier: playerData.longRangeTier,
+            cqcTier: playerData.cqcTier
         };
 
         console.log('Sending player data:', payload);
 
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
-                'apikey': SUPABASE_KEY,
                 'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
             },
             body: JSON.stringify(payload)
         });
@@ -109,15 +100,14 @@ async function addPlayer(playerData) {
         console.log('Response:', responseData);
 
         if (response.ok) {
-            const newPlayer = Array.isArray(responseData) ? responseData[0] : responseData;
             const mappedPlayer = {
-                id: newPlayer.id,
-                username: newPlayer.username,
-                avatar: newPlayer.avatar,
-                region: newPlayer.region,
-                faction: newPlayer.faction,
-                longRangeTier: newPlayer.LongRangeTier,
-                cqcTier: newPlayer.CqcTier
+                id: responseData.id,
+                username: responseData.username,
+                avatar: responseData.avatar,
+                region: responseData.region,
+                faction: responseData.faction,
+                longRangeTier: responseData.LongRangeTier,
+                cqcTier: responseData.CqcTier
             };
             players.push(mappedPlayer);
             return mappedPlayer;
@@ -131,18 +121,18 @@ async function addPlayer(playerData) {
     }
 }
 
-// Update a player in Supabase
+// Update a player via backend
 async function updatePlayer(playerId, playerData) {
     try {
         const payload = {
-            LongRangeTier: playerData.longRangeTier,
-            CqcTier: playerData.cqcTier
+            id: playerId,
+            longRangeTier: playerData.longRangeTier,
+            cqcTier: playerData.cqcTier
         };
 
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+        const response = await fetch(API_URL, {
             method: 'PATCH',
             headers: {
-                'apikey': SUPABASE_KEY,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(payload)
@@ -165,15 +155,15 @@ async function updatePlayer(playerId, playerData) {
     }
 }
 
-// Delete a player from Supabase
+// Delete a player via backend
 async function deletePlayer(playerId) {
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+        const response = await fetch(API_URL, {
             method: 'DELETE',
             headers: {
-                'apikey': SUPABASE_KEY,
                 'Content-Type': 'application/json',
-            }
+            },
+            body: JSON.stringify({ id: playerId })
         });
         
         if (response.ok) {
