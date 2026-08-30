@@ -1,9 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+// The deployed bundle directory is read-only on Vercel, so writes must go to
+// /tmp instead. On first read in a cold start, seed /tmp from the bundled
+// players.json (which was included via the "includeFiles" config).
+const BUNDLED_FILE = path.join(process.cwd(), 'players.json');
+const DATA_FILE = path.join('/tmp', 'players.json');
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function readPlayers() {
+  try {
+    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+    return JSON.parse(raw);
+  } catch (err) {
+    // Not in /tmp yet (cold start) - fall back to the bundled file.
+    try {
+      const raw = fs.readFileSync(BUNDLED_FILE, 'utf-8');
+      return JSON.parse(raw);
+    } catch (err2) {
+      return [];
+    }
+  }
+}
+
+function writePlayers(players) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(players, null, 2));
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,18 +36,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    const players = readPlayers();
+
     // GET /api/players - Get all players
     if (req.method === 'GET') {
-      const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .order('id', { ascending: false });
-
-      if (error) {
-        return res.status(400).json({ error: error.message });
-      }
-
-      return res.status(200).json(data || []);
+      return res.status(200).json(players);
     }
 
     // POST /api/players - Add a new player
@@ -37,25 +51,22 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Username, region, longRangeTier, and cqcTier are required' });
       }
 
-      const { data, error } = await supabase
-        .from('players')
-        .insert([
-          {
-            username,
-            avatar: avatar || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
-            region,
-            faction: faction || 'N/A',
-            LongRangeTier: longRangeTier,
-            CqcTier: cqcTier
-          }
-        ])
-        .select();
+      const nextId = players.reduce((max, p) => (p.id > max ? p.id : max), 0) + 1;
 
-      if (error) {
-        return res.status(400).json({ error: error.message });
-      }
+      const newPlayer = {
+        id: nextId,
+        username,
+        avatar: avatar || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
+        region,
+        faction: faction || 'N/A',
+        LongRangeTier: longRangeTier,
+        CqcTier: cqcTier
+      };
 
-      return res.status(201).json(data[0]);
+      players.push(newPlayer);
+      writePlayers(players);
+
+      return res.status(201).json(newPlayer);
     }
 
     // PATCH /api/players - Update a player
@@ -66,29 +77,22 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Player ID is required' });
       }
 
-      const updateData = {};
-      if (username) updateData.username = username;
-      if (avatar) updateData.avatar = avatar;
-      if (region) updateData.region = region;
-      if (faction) updateData.faction = faction;
-      if (longRangeTier) updateData.LongRangeTier = longRangeTier;
-      if (cqcTier) updateData.CqcTier = cqcTier;
+      const player = players.find(p => p.id === Number(id));
 
-      const { data, error } = await supabase
-        .from('players')
-        .update(updateData)
-        .eq('id', id)
-        .select();
-
-      if (error) {
-        return res.status(400).json({ error: error.message });
-      }
-
-      if (!data || data.length === 0) {
+      if (!player) {
         return res.status(404).json({ error: 'Player not found' });
       }
 
-      return res.status(200).json(data[0]);
+      if (username) player.username = username;
+      if (avatar) player.avatar = avatar;
+      if (region) player.region = region;
+      if (faction) player.faction = faction;
+      if (longRangeTier) player.LongRangeTier = longRangeTier;
+      if (cqcTier) player.CqcTier = cqcTier;
+
+      writePlayers(players);
+
+      return res.status(200).json(player);
     }
 
     // DELETE /api/players - Delete a player
@@ -99,21 +103,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Player ID is required' });
       }
 
-      const { data, error } = await supabase
-        .from('players')
-        .delete()
-        .eq('id', id)
-        .select();
+      const index = players.findIndex(p => p.id === Number(id));
 
-      if (error) {
-        return res.status(400).json({ error: error.message });
-      }
-
-      if (!data || data.length === 0) {
+      if (index === -1) {
         return res.status(404).json({ error: 'Player not found' });
       }
 
-      return res.status(200).json(data[0]);
+      const [deleted] = players.splice(index, 1);
+      writePlayers(players);
+
+      return res.status(200).json(deleted);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
