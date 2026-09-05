@@ -9,7 +9,6 @@
     "start": "node discord-bot.js"
   },
   "dependencies": {
-    "discord.js": "^14.13.0",
-    "@upstash/redis": "^1.25.0"
+    "discord.js": "^14.13.0"
   }
 }
