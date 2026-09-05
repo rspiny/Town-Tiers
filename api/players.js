@@ -1,48 +1,197 @@
-import { Redis } from '@upstash/redis';
+/**
+ * Town Tiers API - Players Endpoint
+ * 
+ * Uses Supabase as the database backend
+ * Server-side only - Supabase credentials are NEVER exposed to the browser
+ */
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
-
-const PLAYERS_KEY = 'town-tiers:players';
-const PLAYER_ID_COUNTER_KEY = 'town-tiers:player-id-counter';
+// Supabase configuration (server-side only)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const API_SECRET = process.env.API_SECRET;
 
-// Verify API_SECRET is configured
+// Validate required environment variables on startup
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+}
+
 if (!API_SECRET) {
-  console.error('ERROR: API_SECRET environment variable is not set. API will reject all write requests.');
+  console.error('WARNING: API_SECRET is not set - write requests will be rejected');
 }
 
 /**
  * Authenticate write requests using API_SECRET
- * GET requests are always allowed (public read)
+ * GET requests remain public
  */
-function authenticateWriteRequest(req) {
+function authenticateRequest(req) {
   const authHeader = req.headers.authorization || '';
   const expectedToken = `Bearer ${API_SECRET}`;
-  
-  if (authHeader !== expectedToken) {
-    return false;
+  return authHeader === expectedToken;
+}
+
+/**
+ * Map Supabase column names (PascalCase) to API response (camelCase)
+ */
+function mapPlayerFromDB(dbPlayer) {
+  if (!dbPlayer) return null;
+  return {
+    id: dbPlayer.id,
+    username: dbPlayer.username,
+    avatar: dbPlayer.avatar,
+    region: dbPlayer.Region,
+    faction: dbPlayer.faction,
+    longRangeTier: dbPlayer.LongRangeTier,
+    cqcTier: dbPlayer.CqcTier
+  };
+}
+
+/**
+ * Map API request body (camelCase) to Supabase columns (PascalCase)
+ */
+function mapPlayerToDB(player) {
+  const dbPlayer = {
+    username: player.username,
+    avatar: player.avatar,
+    Region: player.region,
+    faction: player.faction || 'N/A',
+    LongRangeTier: player.longRangeTier,
+    CqcTier: player.cqcTier
+  };
+  return dbPlayer;
+}
+
+/**
+ * GET all players from Supabase
+ */
+async function getAllPlayers() {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data.map(mapPlayerFromDB) : [];
+  } catch (error) {
+    console.error('Error fetching players from Supabase:', error);
+    throw error;
   }
-  return true;
 }
 
-async function getPlayers() {
-  const players = await redis.get(PLAYERS_KEY);
-  return players || [];
+/**
+ * INSERT a new player into Supabase
+ */
+async function insertPlayer(playerData) {
+  try {
+    const dbPlayer = mapPlayerToDB(playerData);
+    
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(dbPlayer)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || `Supabase error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? mapPlayerFromDB(data[0]) : mapPlayerFromDB(data);
+  } catch (error) {
+    console.error('Error inserting player:', error);
+    throw error;
+  }
 }
 
-async function setPlayers(players) {
-  await redis.set(PLAYERS_KEY, players);
+/**
+ * UPDATE a player in Supabase
+ */
+async function updatePlayer(playerId, playerData) {
+  try {
+    const dbPlayer = mapPlayerToDB(playerData);
+    
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(dbPlayer)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? mapPlayerFromDB(data[0]) : mapPlayerFromDB(data);
+  } catch (error) {
+    console.error('Error updating player:', error);
+    throw error;
+  }
 }
 
-async function getNextPlayerId() {
-  const nextId = await redis.incr(PLAYER_ID_COUNTER_KEY);
-  return nextId;
+/**
+ * DELETE a player from Supabase
+ */
+async function deletePlayer(playerId) {
+  try {
+    // First, get the player before deletion
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const player = Array.isArray(data) ? data[0] : data;
+
+    // Now delete
+    const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${playerId}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!deleteResponse.ok) {
+      throw new Error(`Supabase error: ${deleteResponse.status}`);
+    }
+
+    return mapPlayerFromDB(player);
+  } catch (error) {
+    console.error('Error deleting player:', error);
+    throw error;
+  }
 }
 
 export default async function handler(req, res) {
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -54,13 +203,13 @@ export default async function handler(req, res) {
   try {
     // GET /api/players - Get all players (PUBLIC, no auth required)
     if (req.method === 'GET') {
-      const players = await getPlayers();
+      const players = await getAllPlayers();
       return res.status(200).json(players);
     }
 
     // All write operations require authentication
     if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'DELETE') {
-      if (!authenticateWriteRequest(req)) {
+      if (!authenticateRequest(req)) {
         return res.status(401).json({ error: 'Unauthorized: Invalid or missing API_SECRET' });
       }
     }
@@ -70,26 +219,19 @@ export default async function handler(req, res) {
       const { username, avatar, region, faction, longRangeTier, cqcTier } = req.body;
 
       if (!username || !region || !longRangeTier || !cqcTier) {
-        return res.status(400).json({ error: 'Username, region, longRangeTier, and cqcTier are required' });
+        return res.status(400).json({ 
+          error: 'Missing required fields: username, region, longRangeTier, cqcTier' 
+        });
       }
 
-      const nextId = await getNextPlayerId();
-
-      const newPlayer = {
-        id: nextId,
+      const newPlayer = await insertPlayer({
         username,
         avatar: avatar || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150',
         region,
         faction: faction || 'N/A',
         longRangeTier,
-        cqcTier,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const players = await getPlayers();
-      players.push(newPlayer);
-      await setPlayers(players);
+        cqcTier
+      });
 
       return res.status(201).json(newPlayer);
     }
@@ -102,27 +244,21 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Player ID is required' });
       }
 
-      const players = await getPlayers();
-      const playerIndex = players.findIndex(p => p.id === Number(id));
+      // Build update object with only provided fields
+      const updateData = {};
+      if (username !== undefined) updateData.username = username;
+      if (avatar !== undefined) updateData.avatar = avatar;
+      if (region !== undefined) updateData.region = region;
+      if (faction !== undefined) updateData.faction = faction;
+      if (longRangeTier !== undefined) updateData.longRangeTier = longRangeTier;
+      if (cqcTier !== undefined) updateData.cqcTier = cqcTier;
 
-      if (playerIndex === -1) {
-        return res.status(404).json({ error: 'Player not found' });
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
       }
 
-      const player = players[playerIndex];
-
-      if (username !== undefined) player.username = username;
-      if (avatar !== undefined) player.avatar = avatar;
-      if (region !== undefined) player.region = region;
-      if (faction !== undefined) player.faction = faction;
-      if (longRangeTier !== undefined) player.longRangeTier = longRangeTier;
-      if (cqcTier !== undefined) player.cqcTier = cqcTier;
-      player.updatedAt = new Date().toISOString();
-
-      players[playerIndex] = player;
-      await setPlayers(players);
-
-      return res.status(200).json(player);
+      const updatedPlayer = await updatePlayer(id, updateData);
+      return res.status(200).json(updatedPlayer);
     }
 
     // DELETE /api/players - Delete a player (PROTECTED)
@@ -133,17 +269,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Player ID is required' });
       }
 
-      const players = await getPlayers();
-      const playerIndex = players.findIndex(p => p.id === Number(id));
-
-      if (playerIndex === -1) {
-        return res.status(404).json({ error: 'Player not found' });
-      }
-
-      const [deleted] = players.splice(playerIndex, 1);
-      await setPlayers(players);
-
-      return res.status(200).json(deleted);
+      const deletedPlayer = await deletePlayer(id);
+      return res.status(200).json(deletedPlayer);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
