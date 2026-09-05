@@ -50,33 +50,7 @@
         </main>
     </div>
 
-    <!-- Admin Login Modal -->
-    <div id="adminLoginModal" class="modal">
-        <div class="modal-content login-modal">
-            <span class="close">&times;</span>
-            <h2>Admin Login</h2>
-            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">Enter your credentials to access the admin panel</p>
-            
-            <form id="adminLoginForm">
-                <div class="form-group">
-                    <label>Email <span class="required">*</span></label>
-                    <input type="email" id="adminEmail" placeholder="Enter your email" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Password <span class="required">*</span></label>
-                    <input type="password" id="adminPassword" placeholder="Enter your password" required>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <button type="button" class="btn btn-cancel" onclick="document.getElementById('adminLoginModal').classList.remove('show')">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Player Modal -->
+    <!-- Player Details Modal -->
     <div id="playerModal" class="modal">
         <div class="modal-content player-modal">
             <span class="close">&times;</span>
@@ -105,114 +79,6 @@
         </div>
     </div>
 
-    <!-- Admin Panel Modal -->
-    <div id="adminModal" class="modal">
-        <div class="modal-content admin-modal">
-            <span class="close">&times;</span>
-            <h2>Admin Panel</h2>
-
-            <!-- Discord Invite Section -->
-            <div class="admin-section">
-                <label>DISCORD INVITE LINK</label>
-                <input type="text" id="discordLink" placeholder="https://discord.gg" class="admin-input">
-                <button class="btn btn-save" id="saveLinkBtn">Save Link</button>
-            </div>
-
-            <!-- Players List -->
-            <div class="admin-section">
-                <div class="section-header">
-                    <h3>PLAYERS ({{ playerCount }})</h3>
-                    <button class="btn btn-add" id="addPlayerBtn">+ Add Player</button>
-                </div>
-                <div class="players-list" id="playersList"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Player Modal -->
-    <div id="addPlayerModal" class="modal">
-        <div class="modal-content add-player-modal">
-            <span class="close">&times;</span>
-            <h2>Add New Player</h2>
-            
-            <form id="addPlayerForm">
-                <div class="form-group">
-                    <label>Roblox Username <span class="required">*</span></label>
-                    <input type="text" id="username" placeholder="Enter username" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Avatar Image URL</label>
-                    <input type="text" id="avatarUrl" placeholder="https://tr.rbxcdn.com/...">
-                </div>
-
-                <div class="form-group">
-                    <label>Region <span class="required">*</span></label>
-                    <select id="region" required>
-                        <option value="">Select region</option>
-                        <option value="Europe">Europe</option>
-                        <option value="North America">North America</option>
-                        <option value="South America">South America</option>
-                        <option value="Asia">Asia</option>
-                        <option value="Middle East">Middle East</option>
-                        <option value="Africa">Africa</option>
-                        <option value="Oceania">Oceania</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Faction</label>
-                    <input type="text" id="faction" placeholder="Enter faction name">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Long Range Tier <span class="required">*</span></label>
-                        <select id="longRangeTier" required>
-                            <option value="">Select tier</option>
-                            <option value="LT5">LT5</option>
-                            <option value="HT5">HT5</option>
-                            <option value="LT4">LT4</option>
-                            <option value="HT4">HT4</option>
-                            <option value="LT3">LT3</option>
-                            <option value="HT3">HT3</option>
-                            <option value="LT2">LT2</option>
-                            <option value="HT2">HT2</option>
-                            <option value="LT1">LT1</option>
-                            <option value="HT1">HT1</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>CQC Tier <span class="required">*</span></label>
-                        <select id="cqcTier" required>
-                            <option value="">Select tier</option>
-                            <option value="LT5">LT5</option>
-                            <option value="HT5">HT5</option>
-                            <option value="LT4">LT4</option>
-                            <option value="HT4">HT4</option>
-                            <option value="LT3">LT3</option>
-                            <option value="HT3">HT3</option>
-                            <option value="LT2">LT2</option>
-                            <option value="HT2">HT2</option>
-                            <option value="LT1">LT1</option>
-                            <option value="HT1">HT1</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Notes (Optional)</label>
-                    <textarea id="notes" placeholder="Add any notes about this player..."></textarea>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Add Player</button>
-                    <button type="button" class="btn btn-cancel" id="cancelAddBtn">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
     <footer class="site-footer">
         <p>BETA Version &mdash; for more information contact <span class="footer-discord">rspiny</span> on Discord</p>
     </footer>
