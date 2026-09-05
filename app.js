@@ -19,9 +19,31 @@ const REGION_CONFIG = {
 document.addEventListener('DOMContentLoaded', async () => {
     await initializePlayers();
     loadDiscordLink();
+    checkAdminStatus();
     renderLeaderboards();
     setupEventListeners();
 });
+
+// Check if user is already logged in (sessionStorage)
+function checkAdminStatus() {
+    const token = sessionStorage.getItem('admin_token');
+    isAdminLoggedIn = token !== null && token !== undefined;
+    updateAdminUI();
+}
+
+// Update UI based on admin status
+function updateAdminUI() {
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        if (isAdminLoggedIn) {
+            adminBtn.textContent = '👤 Admin Panel';
+            adminBtn.style.backgroundColor = '#667eea';
+        } else {
+            adminBtn.textContent = '🔐 Admin Login';
+            adminBtn.style.backgroundColor = '#666';
+        }
+    }
+}
 
 // Event listeners
 function setupEventListeners() {
@@ -42,7 +64,23 @@ function setupEventListeners() {
         if (discordLink) window.open(discordLink, '_blank');
     });
 
+    // Admin button - Login or open admin panel
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', () => {
+            if (isAdminLoggedIn) {
+                openAdminModal();
+            } else {
+                openAdminLoginModal();
+            }
+        });
+    }
+
     document.getElementById('addPlayerBtn').addEventListener('click', () => {
+        if (!isAdminLoggedIn) {
+            alert('You must be logged in as an admin to add players.');
+            return;
+        }
         editingPlayerId = null;
         openAddPlayerModal();
     });
@@ -52,6 +90,15 @@ function setupEventListeners() {
         e.preventDefault();
         handleAddOrEditPlayer();
     });
+
+    // Admin login form
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleAdminLogin();
+        });
+    }
 
     // Discord link save
     document.getElementById('saveLinkBtn').addEventListener('click', () => {
@@ -63,6 +110,14 @@ function setupEventListeners() {
         }
     });
 
+    // Logout button
+    const logoutBtn = document.getElementById('adminLogoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            handleAdminLogout();
+        });
+    }
+
     // Close buttons - specific modal handling
     document.querySelectorAll('.close').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -73,6 +128,9 @@ function setupEventListeners() {
             if (modal.id === 'addPlayerModal' && document.getElementById('addPlayerForm')) {
                 document.getElementById('addPlayerForm').reset();
                 editingPlayerId = null;
+            }
+            if (modal.id === 'adminLoginModal' && document.getElementById('adminLoginForm')) {
+                document.getElementById('adminLoginForm').reset();
             }
         });
     });
@@ -93,6 +151,64 @@ function setupEventListeners() {
             }
         }
     });
+}
+
+/**
+ * Handle admin login
+ */
+async function handleAdminLogin() {
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+
+    if (!email || !password) {
+        alert('Please enter both email and password.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(`Login failed: ${data.error || 'Invalid credentials'}`);
+            return;
+        }
+
+        // Store token in sessionStorage (temporary, clears on browser close)
+        setAdminToken(data.token);
+        isAdminLoggedIn = true;
+        updateAdminUI();
+
+        // Close login modal
+        document.getElementById('adminLoginModal').classList.remove('show');
+        document.getElementById('adminLoginForm').reset();
+
+        alert(`Welcome back, ${data.email}!`);
+        openAdminModal();
+    } catch (error) {
+        console.error('Login error:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Handle admin logout
+ */
+function handleAdminLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        clearAdminToken();
+        isAdminLoggedIn = false;
+        updateAdminUI();
+        document.getElementById('adminModal').classList.remove('show');
+        alert('You have been logged out.');
+    }
 }
 
 // Tab switching
@@ -169,7 +285,7 @@ function renderLeaderboard(category) {
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
                 <div class="player-tiers">
                     <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-pu[...]
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-pu)'};">${player.cqcTier}</span>
                 </div>
             </div>
         `;
@@ -218,7 +334,7 @@ function handleSearch(query) {
                 <div class="region-badge" style="background: ${regionConfig.color}">${regionConfig.abbr}</div>
                 <div class="player-tiers">
                     <span class="tier-small">${player.longRangeTier}</span>
-                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-pu[...]
+                    <span class="tier-small" style="background: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-purple)'}; border-color: ${player.cqcTier === 'N/A' ? '#666' : 'var(--accent-pu)'};">${player.cqcTier}</span>
                 </div>
             </div>
         `;
@@ -241,7 +357,20 @@ function openPlayerModal(playerId) {
     const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : getPointsForTier(player.cqcTier);
     
     document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier} - ${longRangePoints}pts</span>`;
-    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - [...]
+    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - ${cqcPoints}pts</span>`;
+    
+    // Only show edit/delete if admin is logged in
+    const editDeleteSection = document.getElementById('playerEditDelete');
+    if (editDeleteSection) {
+        if (isAdminLoggedIn) {
+            editDeleteSection.innerHTML = `
+                <button class="btn btn-edit" onclick="startEditPlayer(event, ${player.id})">✎ Edit</button>
+                <button class="btn btn-delete" onclick="deletePlayerConfirm(event, ${player.id})">🗑 Delete</button>
+            `;
+        } else {
+            editDeleteSection.innerHTML = '';
+        }
+    }
     
     document.getElementById('playerModal').classList.add('show');
 }
@@ -253,9 +382,29 @@ function openAddPlayerModal() {
     document.getElementById('addPlayerModal').classList.add('show');
 }
 
+// Open admin login modal
+function openAdminLoginModal() {
+    document.getElementById('adminLoginForm').reset();
+    document.getElementById('adminLoginModal').classList.add('show');
+}
+
+// Open admin panel modal
+function openAdminModal() {
+    if (!isAdminLoggedIn) {
+        alert('You must be logged in to access the admin panel.');
+        return;
+    }
+    document.getElementById('adminModal').classList.add('show');
+}
+
 // Start edit player
 function startEditPlayer(event, playerId) {
     event.stopPropagation();
+    if (!isAdminLoggedIn) {
+        alert('You must be logged in as an admin to edit players.');
+        return;
+    }
+
     const player = players.find(p => p.id === playerId);
     if (!player) return;
 
@@ -272,17 +421,22 @@ function startEditPlayer(event, playerId) {
     
     document.querySelector('#addPlayerModal h2').textContent = `Edit ${player.username}`;
     document.getElementById('addPlayerModal').classList.add('show');
+    document.getElementById('playerModal').classList.remove('show');
 }
 
 // Handle add or edit player
 async function handleAddOrEditPlayer() {
+    if (!isAdminLoggedIn) {
+        alert('Admin authentication required.');
+        return;
+    }
+
     const username = document.getElementById('username').value.trim();
     const avatarUrl = document.getElementById('avatarUrl').value.trim();
     const region = document.getElementById('region').value;
     const faction = document.getElementById('faction').value.trim();
     const longRangeTier = document.getElementById('longRangeTier').value;
     const cqcTier = document.getElementById('cqcTier').value;
-    const notes = document.getElementById('notes').value.trim();
 
     if (!username || !region || !longRangeTier || !cqcTier) {
         alert('Please fill in all required fields!');
@@ -295,8 +449,7 @@ async function handleAddOrEditPlayer() {
         region,
         faction: faction || 'N/A',
         longRangeTier,
-        cqcTier,
-        notes
+        cqcTier
     };
 
     try {
@@ -329,11 +482,18 @@ async function handleAddOrEditPlayer() {
 // Delete player
 async function deletePlayerConfirm(event, playerId) {
     event.stopPropagation();
+    if (!isAdminLoggedIn) {
+        alert('Admin authentication required.');
+        return;
+    }
+
     if (confirm('Are you sure you want to delete this player?')) {
         try {
             const result = await deletePlayer(playerId);
             if (result) {
+                document.getElementById('playerModal').classList.remove('show');
                 renderLeaderboards();
+                alert('Player deleted successfully!');
             }
         } catch (error) {
             alert(`Error: ${error.message}`);
