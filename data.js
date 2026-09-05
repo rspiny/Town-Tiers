@@ -12,38 +12,79 @@ const TIER_POINTS = {
     'HT1': 100
 };
 
-// API Base URL - uses relative path to connect to the same deployment
+// API Base URL - Uses relative path to always hit same deployment
 const API_URL = '/api/players';
 
 // Players array (will be loaded from backend)
 let players = [];
+let apiError = null;
+
+// Admin authentication token stored in sessionStorage (NOT persistent, clears on browser close)
+let adminToken = null;
+
+/**
+ * Check if user has a valid admin token in sessionStorage
+ * Token format: server-issued session token from /api/auth/login
+ * This prevents simple localStorage/DevTools manipulation
+ */
+function isAdminAuthenticated() {
+  const token = sessionStorage.getItem('admin_token');
+  return token !== null && token !== undefined;
+}
+
+/**
+ * Get admin token for requests
+ * Returns null if not authenticated
+ */
+function getAdminToken() {
+  return sessionStorage.getItem('admin_token');
+}
+
+/**
+ * Set admin token after successful login
+ * Uses sessionStorage (not persistent across browser close)
+ */
+function setAdminToken(token) {
+  sessionStorage.setItem('admin_token', token);
+}
+
+/**
+ * Clear admin token on logout
+ */
+function clearAdminToken() {
+  sessionStorage.removeItem('admin_token');
+}
 
 // Initialize app - load players from backend
 async function initializePlayers() {
     try {
+        apiError = null;
         const response = await fetch(API_URL);
         
-        if (response.ok) {
-            const data = await response.json();
-            // Map API fields to our format (all camelCase now)
-            players = data.map(p => ({
-                id: p.id,
-                username: p.username,
-                avatar: p.avatar,
-                region: p.region,
-                faction: p.faction,
-                longRangeTier: p.longRangeTier,
-                cqcTier: p.cqcTier,
-                createdAt: p.createdAt,
-                updatedAt: p.updatedAt
-            }));
-            console.log('Players loaded from backend:', players);
-        } else {
-            console.error('Failed to load players:', response.statusText);
-            players = [];
+        if (!response.ok) {
+            throw new Error(`API returned ${response.status}: ${response.statusText}`);
         }
+
+        const data = await response.json();
+        
+        if (!Array.isArray(data)) {
+            throw new Error('API returned invalid data format');
+        }
+
+        // Map API fields to our format (API now returns camelCase)
+        players = data.map(p => ({
+            id: p.id,
+            username: p.username,
+            avatar: p.avatar,
+            region: p.region,
+            faction: p.faction,
+            longRangeTier: p.longRangeTier,
+            cqcTier: p.cqcTier
+        }));
+        console.log('Players loaded from backend:', players);
     } catch (error) {
         console.error('Error loading players:', error);
+        apiError = error.message;
         players = [];
     }
 }
@@ -79,6 +120,13 @@ function getPlayersSortedBy(category) {
 // Add a new player via backend
 async function addPlayer(playerData) {
     try {
+        // Admin operations require authentication token
+        if (!isAdminAuthenticated()) {
+            throw new Error('Admin authentication required');
+        }
+
+        const token = getAdminToken();
+
         const payload = {
             username: playerData.username,
             avatar: playerData.avatar,
@@ -94,6 +142,7 @@ async function addPlayer(playerData) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(payload)
         });
@@ -109,25 +158,30 @@ async function addPlayer(playerData) {
                 region: responseData.region,
                 faction: responseData.faction,
                 longRangeTier: responseData.longRangeTier,
-                cqcTier: responseData.cqcTier,
-                createdAt: responseData.createdAt,
-                updatedAt: responseData.updatedAt
+                cqcTier: responseData.cqcTier
             };
             players.push(mappedPlayer);
             return mappedPlayer;
         } else {
             console.error('Failed to add player:', responseData);
-            return null;
+            throw new Error(responseData.error || 'Failed to add player');
         }
     } catch (error) {
         console.error('Error adding player:', error);
-        return null;
+        throw error;
     }
 }
 
 // Update a player via backend
 async function updatePlayer(playerId, playerData) {
     try {
+        // Admin operations require authentication token
+        if (!isAdminAuthenticated()) {
+            throw new Error('Admin authentication required');
+        }
+
+        const token = getAdminToken();
+
         const payload = {
             id: playerId,
             longRangeTier: playerData.longRangeTier,
@@ -138,52 +192,67 @@ async function updatePlayer(playerId, playerData) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(payload)
         });
         
-        if (response.ok) {
-            const index = players.findIndex(p => p.id === playerId);
-            if (index !== -1) {
-                players[index] = { ...players[index], ...playerData };
-                return players[index];
-            }
-            return null;
-        } else {
-            console.error('Failed to update player:', response.statusText);
-            return null;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update player');
         }
+
+        const responseData = await response.json();
+        
+        const index = players.findIndex(p => p.id === playerId);
+        if (index !== -1) {
+            players[index] = {
+                ...players[index],
+                longRangeTier: responseData.longRangeTier,
+                cqcTier: responseData.cqcTier
+            };
+            return players[index];
+        }
+        return null;
     } catch (error) {
         console.error('Error updating player:', error);
-        return null;
+        throw error;
     }
 }
 
 // Delete a player via backend
 async function deletePlayer(playerId) {
     try {
+        // Admin operations require authentication token
+        if (!isAdminAuthenticated()) {
+            throw new Error('Admin authentication required');
+        }
+
+        const token = getAdminToken();
+
         const response = await fetch(API_URL, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ id: playerId })
         });
         
-        if (response.ok) {
-            const index = players.findIndex(p => p.id === playerId);
-            if (index !== -1) {
-                players.splice(index, 1);
-                return true;
-            }
-            return false;
-        } else {
-            console.error('Failed to delete player:', response.statusText);
-            return false;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete player');
         }
+
+        const index = players.findIndex(p => p.id === playerId);
+        if (index !== -1) {
+            players.splice(index, 1);
+            return true;
+        }
+        return false;
     } catch (error) {
         console.error('Error deleting player:', error);
-        return false;
+        throw error;
     }
 }
 
