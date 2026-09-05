@@ -1,25 +1,48 @@
 import { Client, GatewayIntentBits, SlashCommandBuilder } from 'discord.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-const GUILD_ID = process.env.DISCORD_GUILD_ID;
-const API_SECRET = process.env.API_SECRET;
-const API_URL = process.env.VERCEL_URL 
-  ? `https://${process.env.VERCEL_URL}/api/players`
-  : 'http://localhost:3000/api/players';
 
-// Verify API_SECRET is configured
-if (!API_SECRET) {
-  console.error('ERROR: API_SECRET environment variable is not set. Discord bot will not be able to modify the leaderboard.');
+// Environment variables (server-side only, never exposed to browser)
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
+const TOWN_TIERS_API_URL = process.env.TOWN_TIERS_API_URL;
+const API_SECRET = process.env.API_SECRET;
+
+// Validate required environment variables on startup
+if (!DISCORD_TOKEN) {
+  console.error('❌ ERROR: DISCORD_TOKEN environment variable is not set!');
+  process.exit(1);
 }
+
+if (!DISCORD_GUILD_ID) {
+  console.error('❌ ERROR: DISCORD_GUILD_ID environment variable is not set!');
+  process.exit(1);
+}
+
+if (!TOWN_TIERS_API_URL) {
+  console.error('❌ ERROR: TOWN_TIERS_API_URL environment variable is not set!');
+  console.error('   Example: https://your-deployment.vercel.app/api/players');
+  process.exit(1);
+}
+
+if (!API_SECRET) {
+  console.error('❌ ERROR: API_SECRET environment variable is not set!');
+  console.error('   API mutations will fail. Set this to the same secret as your Vercel deployment.');
+  process.exit(1);
+}
+
+// Valid tier values
+const VALID_TIERS = ['LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1', 'N/A'];
 
 client.once('ready', () => {
   console.log(`✅ Bot logged in as ${client.user.tag}`);
+  console.log(`📡 API URL: ${TOWN_TIERS_API_URL}`);
   registerCommands();
 });
 
 async function registerCommands() {
-  const guild = await client.guilds.fetch(GUILD_ID);
-  
+  const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
+
   const addPlayerCommand = new SlashCommandBuilder()
     .setName('addplayer')
     .setDescription('Add a new player to the leaderboard')
@@ -32,16 +55,50 @@ async function registerCommands() {
       option.setName('longrange')
         .setDescription('Long range tier (LT5, HT5, LT4, HT4, LT3, HT3, LT2, HT2, LT1, HT1)')
         .setRequired(true)
+        .addChoices(
+          { name: 'LT5', value: 'LT5' },
+          { name: 'HT5', value: 'HT5' },
+          { name: 'LT4', value: 'LT4' },
+          { name: 'HT4', value: 'HT4' },
+          { name: 'LT3', value: 'LT3' },
+          { name: 'HT3', value: 'HT3' },
+          { name: 'LT2', value: 'LT2' },
+          { name: 'HT2', value: 'HT2' },
+          { name: 'LT1', value: 'LT1' },
+          { name: 'HT1', value: 'HT1' }
+        )
     )
     .addStringOption(option =>
       option.setName('cqc')
         .setDescription('CQC tier (LT5, HT5, LT4, HT4, LT3, HT3, LT2, HT2, LT1, HT1, or N/A)')
         .setRequired(true)
+        .addChoices(
+          { name: 'LT5', value: 'LT5' },
+          { name: 'HT5', value: 'HT5' },
+          { name: 'LT4', value: 'LT4' },
+          { name: 'HT4', value: 'HT4' },
+          { name: 'LT3', value: 'LT3' },
+          { name: 'HT3', value: 'HT3' },
+          { name: 'LT2', value: 'LT2' },
+          { name: 'HT2', value: 'HT2' },
+          { name: 'LT1', value: 'LT1' },
+          { name: 'HT1', value: 'HT1' },
+          { name: 'N/A', value: 'N/A' }
+        )
     )
     .addStringOption(option =>
       option.setName('region')
-        .setDescription('Region (Europe, North America, South America, Asia, Middle East, Africa, Oceania)')
+        .setDescription('Region')
         .setRequired(true)
+        .addChoices(
+          { name: 'Europe', value: 'Europe' },
+          { name: 'North America', value: 'North America' },
+          { name: 'South America', value: 'South America' },
+          { name: 'Asia', value: 'Asia' },
+          { name: 'Middle East', value: 'Middle East' },
+          { name: 'Africa', value: 'Africa' },
+          { name: 'Oceania', value: 'Oceania' }
+        )
     )
     .addStringOption(option =>
       option.setName('faction')
@@ -66,11 +123,36 @@ async function registerCommands() {
       option.setName('longrange')
         .setDescription('New long range tier')
         .setRequired(true)
+        .addChoices(
+          { name: 'LT5', value: 'LT5' },
+          { name: 'HT5', value: 'HT5' },
+          { name: 'LT4', value: 'LT4' },
+          { name: 'HT4', value: 'HT4' },
+          { name: 'LT3', value: 'LT3' },
+          { name: 'HT3', value: 'HT3' },
+          { name: 'LT2', value: 'LT2' },
+          { name: 'HT2', value: 'HT2' },
+          { name: 'LT1', value: 'LT1' },
+          { name: 'HT1', value: 'HT1' }
+        )
     )
     .addStringOption(option =>
       option.setName('cqc')
         .setDescription('New CQC tier')
         .setRequired(true)
+        .addChoices(
+          { name: 'LT5', value: 'LT5' },
+          { name: 'HT5', value: 'HT5' },
+          { name: 'LT4', value: 'LT4' },
+          { name: 'HT4', value: 'HT4' },
+          { name: 'LT3', value: 'LT3' },
+          { name: 'HT3', value: 'HT3' },
+          { name: 'LT2', value: 'LT2' },
+          { name: 'HT2', value: 'HT2' },
+          { name: 'LT1', value: 'LT1' },
+          { name: 'HT1', value: 'HT1' },
+          { name: 'N/A', value: 'N/A' }
+        )
     );
 
   const deletePlayerCommand = new SlashCommandBuilder()
@@ -96,18 +178,26 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.commandName === 'addplayer') {
     await interaction.deferReply();
-    
+
     try {
       const username = interaction.options.getString('username');
       const longrange = interaction.options.getString('longrange');
       const cqc = interaction.options.getString('cqc');
       const region = interaction.options.getString('region');
       const faction = interaction.options.getString('faction') || 'N/A';
-      const avatar = interaction.options.getString('avatar') || 'https://www.roblox.com/avatar/?userId=0&format=png&size=150x150';
+      const avatar = interaction.options.getString('avatar') || undefined;
 
-      const response = await fetch(API_URL, {
+      // Validate tier values
+      if (!VALID_TIERS.includes(longrange)) {
+        return await interaction.editReply(`❌ Error: Invalid long range tier "${longrange}"`);
+      }
+      if (!VALID_TIERS.includes(cqc)) {
+        return await interaction.editReply(`❌ Error: Invalid CQC tier "${cqc}"`);
+      }
+
+      const response = await fetch(TOWN_TIERS_API_URL, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${API_SECRET}`
         },
@@ -121,36 +211,42 @@ client.on('interactionCreate', async (interaction) => {
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const player = await response.json();
-        await interaction.editReply({
-          content: `✅ Player **${player.username}** added successfully!`
-        });
+        await interaction.editReply(
+          `✅ Player **${data.username}** added successfully! (ID: ${data.id})`
+        );
       } else {
-        const error = await response.json();
-        await interaction.editReply({
-          content: `❌ Error: ${error.error}`
-        });
+        await interaction.editReply(
+          `❌ Error: ${data.error || 'Failed to add player'}`
+        );
       }
     } catch (error) {
-      console.error('Error:', error);
-      await interaction.editReply({
-        content: `❌ Error adding player: ${error.message}`
-      });
+      console.error('Error adding player:', error);
+      await interaction.editReply(`❌ Error: ${error.message}`);
     }
   }
 
   if (interaction.commandName === 'editplayer') {
     await interaction.deferReply();
-    
+
     try {
       const playerId = interaction.options.getNumber('playerid');
       const longrange = interaction.options.getString('longrange');
       const cqc = interaction.options.getString('cqc');
 
-      const response = await fetch(API_URL, {
+      // Validate tier values
+      if (!VALID_TIERS.includes(longrange)) {
+        return await interaction.editReply(`❌ Error: Invalid long range tier "${longrange}"`);
+      }
+      if (!VALID_TIERS.includes(cqc)) {
+        return await interaction.editReply(`❌ Error: Invalid CQC tier "${cqc}"`);
+      }
+
+      const response = await fetch(TOWN_TIERS_API_URL, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${API_SECRET}`
         },
@@ -161,56 +257,54 @@ client.on('interactionCreate', async (interaction) => {
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        await interaction.editReply({
-          content: `✅ Player **${playerId}** updated successfully!`
-        });
+        await interaction.editReply(
+          `✅ Player **${data.username}** updated! (${data.longRangeTier}/${data.cqcTier})`
+        );
       } else {
-        const error = await response.json();
-        await interaction.editReply({
-          content: `❌ Error: ${error.error}`
-        });
+        await interaction.editReply(
+          `❌ Error: ${data.error || 'Failed to update player'}`
+        );
       }
     } catch (error) {
-      console.error('Error:', error);
-      await interaction.editReply({
-        content: `❌ Error editing player: ${error.message}`
-      });
+      console.error('Error editing player:', error);
+      await interaction.editReply(`❌ Error: ${error.message}`);
     }
   }
 
   if (interaction.commandName === 'deleteplayer') {
     await interaction.deferReply();
-    
+
     try {
       const playerId = interaction.options.getNumber('playerid');
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(TOWN_TIERS_API_URL, {
         method: 'DELETE',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${API_SECRET}`
         },
         body: JSON.stringify({ id: playerId })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        await interaction.editReply({
-          content: `✅ Player **${playerId}** deleted successfully!`
-        });
+        await interaction.editReply(
+          `✅ Player **${data.username}** deleted from the leaderboard.`
+        );
       } else {
-        const error = await response.json();
-        await interaction.editReply({
-          content: `❌ Error: ${error.error}`
-        });
+        await interaction.editReply(
+          `❌ Error: ${data.error || 'Failed to delete player'}`
+        );
       }
     } catch (error) {
-      console.error('Error:', error);
-      await interaction.editReply({
-        content: `❌ Error deleting player: ${error.message}`
-      });
+      console.error('Error deleting player:', error);
+      await interaction.editReply(`❌ Error: ${error.message}`);
     }
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(DISCORD_TOKEN);
