@@ -40,7 +40,8 @@ function setupEventListeners() {
     const discordBtn = document.getElementById('discordBtn');
     if (discordBtn) {
         discordBtn.addEventListener('click', () => {
-            window.open('https://discord.gg/KvFydQvA8', '_blank');
+            const discordLink = localStorage.getItem('discordLink') || 'https://discord.gg';
+            if (discordLink) window.open(discordLink, '_blank');
         });
     }
 
