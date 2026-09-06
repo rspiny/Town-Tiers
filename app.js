@@ -39,9 +39,17 @@ function setupEventListeners() {
     // Discord button
     const discordBtn = document.getElementById('discordBtn');
     if (discordBtn) {
-        discordBtn.addEventListener('click', () => {
-            const discordLink = localStorage.getItem('discordLink') || 'https://discord.gg';
-            if (discordLink) window.open(discordLink, '_blank');
+        discordBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                if (config.discordLink) {
+                    window.open(config.discordLink, '_blank');
+                }
+            } catch (error) {
+                console.error('Error fetching Discord link:', error);
+                window.open('https://discord.gg', '_blank');
+            }
         });
     }
 
