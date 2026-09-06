@@ -38,7 +38,7 @@ function mapPlayerFromDB(dbPlayer) {
     id: dbPlayer.id,
     username: dbPlayer.username,
     avatar: dbPlayer.avatar,
-    region: dbPlayer.Region,
+    region: dbPlayer.region,
     faction: dbPlayer.faction,
     longRangeTier: dbPlayer.LongRangeTier,
     cqcTier: dbPlayer.CqcTier
@@ -52,7 +52,7 @@ function mapPlayerToDB(player) {
   const dbPlayer = {
     username: player.username,
     avatar: player.avatar,
-    Region: player.region,
+    region: player.region,
     faction: player.faction || 'N/A',
     LongRangeTier: player.longRangeTier,
     CqcTier: player.cqcTier
