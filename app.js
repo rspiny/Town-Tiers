@@ -221,7 +221,7 @@ function openPlayerModal(playerId) {
     const cqcPoints = player.cqcTier === 'N/A' ? 'N/A' : getPointsForTier(player.cqcTier);
     
     document.getElementById('playerLongRange').innerHTML = `<span class="tier-badge">${player.longRangeTier} - ${longRangePoints}pts</span>`;
-    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - [...]
+    document.getElementById('playerCQC').innerHTML = `<span class="tier-badge" style="${player.cqcTier === 'N/A' ? 'background: #666; border-color: #666; color: #ccc;' : ''}">${player.cqcTier} - ${cqcPoints}pts</span>`;
     
     // Remove edit/delete buttons - read-only mode
     const editDeleteSection = document.getElementById('playerEditDelete');
