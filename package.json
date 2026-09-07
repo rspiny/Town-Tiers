@@ -9,6 +9,7 @@
     "start": "node discord-bot.js"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "discord.js": "^14.13.0"
   }
 }
