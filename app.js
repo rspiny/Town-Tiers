@@ -239,3 +239,152 @@ function openPlayerModal(playerId) {
     
     document.getElementById('playerModal').classList.add('show');
 }
+
+// ===== Tier guide button + popup =====
+// Adds a "Tiers" button next to the search bar. Clicking it opens a popup
+// listing every tier from worst to best, built automatically from TIER_POINTS
+// in data.js (so new tiers like MT show up by themselves).
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput || typeof TIER_POINTS === 'undefined') return;
+
+    // Styles for the button and popup
+    const style = document.createElement('style');
+    style.textContent = `
+        #tierGuideBtn {
+            margin-left: 10px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent-purple, #b44cff);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        #tierGuideBtn:hover { opacity: 0.85; }
+        #tierGuideOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #tierGuideOverlay.show { display: flex; }
+        #tierGuideBox {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 360px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+            color: #fff;
+        }
+        #tierGuideBox .tg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        #tierGuideBox h3 { margin: 0; font-size: 18px; }
+        #tierGuideBox .tg-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #tierGuideBox .tg-sub {
+            color: #999;
+            font-size: 13px;
+            margin: 0 0 14px 0;
+        }
+        #tierGuideBox .tg-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        #tierGuideBox .tg-name { font-weight: 700; }
+        #tierGuideBox .tg-pts { color: #999; }
+        #tierGuideBox .tg-legend {
+            color: #777;
+            font-size: 12px;
+            margin: 14px 0 0 0;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // The button, placed right after the search bar
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'tierGuideBtn';
+    btn.textContent = 'Tiers';
+    searchInput.insertAdjacentElement('afterend', btn);
+
+    // The popup
+    const overlay = document.createElement('div');
+    overlay.id = 'tierGuideOverlay';
+
+    const box = document.createElement('div');
+    box.id = 'tierGuideBox';
+
+    const header = document.createElement('div');
+    header.className = 'tg-header';
+    const title = document.createElement('h3');
+    title.textContent = 'All Tiers';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'tg-close';
+    closeBtn.textContent = '\u00D7';
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    const sub = document.createElement('p');
+    sub.className = 'tg-sub';
+    sub.textContent = 'Worst \u2192 Best';
+
+    box.appendChild(header);
+    box.appendChild(sub);
+
+    // Sort by points, lowest first (worst to best)
+    Object.entries(TIER_POINTS)
+        .sort((a, b) => a[1] - b[1])
+        .forEach(([tier, points]) => {
+            const row = document.createElement('div');
+            row.className = 'tg-row';
+            const name = document.createElement('span');
+            name.className = 'tg-name';
+            name.textContent = tier;
+            const pts = document.createElement('span');
+            pts.className = 'tg-pts';
+            pts.textContent = points + ' pts';
+            row.appendChild(name);
+            row.appendChild(pts);
+            box.appendChild(row);
+        });
+
+    const legend = document.createElement('p');
+    legend.className = 'tg-legend';
+    legend.textContent = 'LT = Low Tier, MT = Medium Tier, HT = High Tier';
+    box.appendChild(legend);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // Open / close behaviour
+    const open = () => overlay.classList.add('show');
+    const close = () => overlay.classList.remove('show');
+    btn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
+});
